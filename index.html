@@ -30,7 +30,7 @@
     }
 
     .app-shell {
-      max-width: 100%;   /* ocupa praticamente a tela toda */
+      max-width: 100%;        /* ocupa praticamente a tela toda */
       margin: 0 auto;
       padding: 1rem 2.5rem 2.5rem;  /* só uma margem lateral pra não colar na borda */
     }
@@ -120,9 +120,9 @@
 
     .summary-card {
       border-radius: 12px;
-      border: 1px solid var(--border);
+      border: 1px solid #e2e8f0;
       padding: 0.6rem 0.75rem;
-      background: #ffffff;
+      background: linear-gradient(135deg, #ffffff, #f9fafb);
     }
 
     .summary-label {
@@ -147,7 +147,7 @@
 
     .table-wrapper {
       overflow-x: auto;
-      border-radius: 12px;
+      border-radius: 14px;
       border: 1px solid var(--border);
       margin-top: 0.25rem;
       background: #ffffff;
@@ -160,7 +160,10 @@
       font-size: 0.8rem;
     }
 
-    thead { background: var(--table-header); }
+    thead {
+      background: var(--table-header);
+      box-shadow: inset 0 -1px #e5e7eb;
+    }
 
     th, td {
       padding: 0.5rem 0.6rem;
@@ -177,10 +180,25 @@
       z-index: 1;
     }
 
-    th { font-weight: 500; color: var(--text-soft); }
+    th {
+      font-weight: 500;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.7rem;
+    }
+
+    tbody tr {
+      transition: background 0.15s ease, transform 0.05s ease,
+                  box-shadow 0.15s ease;
+    }
 
     tbody tr:nth-child(even) td { background: #f9fafb; }
-    tbody tr:hover td { background: #eff6ff; }
+
+    tbody tr:hover td {
+      background: #eef2ff;
+      box-shadow: inset 0 0 0 9999px rgba(129, 140, 248, 0.06);
+    }
 
     td.total { font-weight: 600; }
     td.saldo-positivo { color: var(--accent); font-weight: 600; }
@@ -206,6 +224,9 @@
       color: var(--text);
       margin-bottom: 0.25rem;
       font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 0.12rem;
     }
 
     .form-card-title .label {
@@ -280,6 +301,17 @@
       font-size: 0.75rem;
     }
 
+    .btn-outline {
+      background: #ffffff;
+      color: var(--text-soft);
+      border: 1px solid #e5e7eb;
+    }
+
+    .btn-outline:hover {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
     .badge {
       padding: 0.12rem 0.5rem;
       border-radius: 999px;
@@ -335,6 +367,46 @@
       font-size: 0.78rem;
       color: var(--text-soft);
       text-align: center;
+    }
+
+    /* Filtros de lançamentos */
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+      margin-top: 0.35rem;
+    }
+
+    .filter-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+      min-width: 150px;
+      font-size: 0.78rem;
+    }
+
+    .filter-label {
+      color: var(--text-soft);
+      font-size: 0.75rem;
+    }
+
+    .filter-select {
+      background: #ffffff;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.7rem;
+      font-size: 0.78rem;
+      color: var(--text);
+    }
+
+    @media (max-width: 768px) {
+      .filters-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .filter-field { width: 100%; }
     }
   </style>
 </head>
@@ -456,6 +528,48 @@
           Lançamentos do ano
           <span class="label">Edite ou exclua se tiver digitado errado</span>
         </h2>
+
+        <!-- Filtros -->
+        <div class="filters-row">
+          <div class="filter-field">
+            <span class="filter-label">Tipo</span>
+            <select id="filtroTipo" class="filter-select">
+              <option value="todos">Todos</option>
+              <option value="ganho">Ganhos</option>
+              <option value="gasto">Gastos</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <span class="filter-label">Mês</span>
+            <select id="filtroMes" class="filter-select">
+              <option value="todos">Todos</option>
+              <option value="0">Jan</option>
+              <option value="1">Fev</option>
+              <option value="2">Mar</option>
+              <option value="3">Abr</option>
+              <option value="4">Mai</option>
+              <option value="5">Jun</option>
+              <option value="6">Jul</option>
+              <option value="7">Ago</option>
+              <option value="8">Set</option>
+              <option value="9">Out</option>
+              <option value="10">Nov</option>
+              <option value="11">Dez</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <span class="filter-label">Categoria</span>
+            <select id="filtroCategoria" class="filter-select">
+              <!-- opções preenchidas via JS -->
+            </select>
+          </div>
+
+          <button type="button" id="btnLimparFiltros" class="btn-outline">
+            Limpar filtros
+          </button>
+        </div>
 
         <div class="table-wrapper">
           <table>
@@ -669,18 +783,36 @@
         `Média mensal: ${formatarMoeda(totalSaldoAno / 12)}`;
     }
 
-    // ===== Tabela de lançamentos =====
+    // ===== Tabela de lançamentos (com filtros) =====
     function preencherTabelaLancamentos(ano) {
       garantirAno(ano);
       const tbody = document.getElementById("tabelaLancamentos");
       tbody.innerHTML = "";
 
-      const lancamentos = [...dadosPorAno[ano].lancamentos];
-      if (!lancamentos.length) {
+      const lista = dadosPorAno[ano].lancamentos || [];
+
+      const filtroTipoEl = document.getElementById("filtroTipo");
+      const filtroMesEl = document.getElementById("filtroMes");
+      const filtroCatEl = document.getElementById("filtroCategoria");
+
+      const tipoFiltro = filtroTipoEl ? filtroTipoEl.value : "todos";
+      const mesFiltro = filtroMesEl ? filtroMesEl.value : "todos";
+      const catFiltro = filtroCatEl ? filtroCatEl.value : "todas";
+
+      const filtrados = lista.filter(l => {
+        const okTipo = tipoFiltro === "todos" || l.tipo === tipoFiltro;
+        const okMes =
+          mesFiltro === "todos" || l.mes === parseInt(mesFiltro, 10);
+        const okCat =
+          catFiltro === "todas" || l.categoria === catFiltro;
+        return okTipo && okMes && okCat;
+      });
+
+      if (!filtrados.length) {
         const tr = document.createElement("tr");
         const td = document.createElement("td");
         td.colSpan = 6;
-        td.textContent = "Nenhum lançamento neste ano.";
+        td.textContent = "Nenhum lançamento com os filtros atuais.";
         td.style.textAlign = "center";
         td.style.color = "#9ca3af";
         tr.appendChild(td);
@@ -688,55 +820,56 @@
         return;
       }
 
-      lancamentos.sort((a, b) => a.mes - b.mes || a.id - b.id);
+      filtrados
+        .slice()
+        .sort((a, b) => a.mes - b.mes || a.id - b.id)
+        .forEach(l => {
+          const tr = document.createElement("tr");
 
-      lancamentos.forEach(l => {
-        const tr = document.createElement("tr");
+          const tdTipo = document.createElement("td");
+          const spanTipo = document.createElement("span");
+          spanTipo.className =
+            "badge " + (l.tipo === "ganho" ? "badge-ganho" : "badge-gasto");
+          spanTipo.textContent = l.tipo === "ganho" ? "Ganho" : "Gasto";
+          tdTipo.appendChild(spanTipo);
+          tr.appendChild(tdTipo);
 
-        const tdTipo = document.createElement("td");
-        const spanTipo = document.createElement("span");
-        spanTipo.className =
-          "badge " + (l.tipo === "ganho" ? "badge-ganho" : "badge-gasto");
-        spanTipo.textContent = l.tipo === "ganho" ? "Ganho" : "Gasto";
-        tdTipo.appendChild(spanTipo);
-        tr.appendChild(tdTipo);
+          const tdMes = document.createElement("td");
+          tdMes.textContent = mesesLabels[l.mes];
+          tr.appendChild(tdMes);
 
-        const tdMes = document.createElement("td");
-        tdMes.textContent = mesesLabels[l.mes];
-        tr.appendChild(tdMes);
+          const tdCat = document.createElement("td");
+          tdCat.textContent = l.categoria;
+          tr.appendChild(tdCat);
 
-        const tdCat = document.createElement("td");
-        tdCat.textContent = l.categoria;
-        tr.appendChild(tdCat);
+          const tdValor = document.createElement("td");
+          tdValor.textContent = formatarMoeda(l.valor);
+          tr.appendChild(tdValor);
 
-        const tdValor = document.createElement("td");
-        tdValor.textContent = formatarMoeda(l.valor);
-        tr.appendChild(tdValor);
+          const tdDesc = document.createElement("td");
+          tdDesc.textContent = l.descricao || "";
+          tr.appendChild(tdDesc);
 
-        const tdDesc = document.createElement("td");
-        tdDesc.textContent = l.descricao || "";
-        tr.appendChild(tdDesc);
+          const tdAcoes = document.createElement("td");
+          const btnEditar = document.createElement("button");
+          btnEditar.textContent = "Editar";
+          btnEditar.className = "btn-small";
+          btnEditar.dataset.action = "editar";
+          btnEditar.dataset.id = String(l.id);
 
-        const tdAcoes = document.createElement("td");
-        const btnEditar = document.createElement("button");
-        btnEditar.textContent = "Editar";
-        btnEditar.className = "btn-small";
-        btnEditar.dataset.action = "editar";
-        btnEditar.dataset.id = String(l.id);
+          const btnExcluir = document.createElement("button");
+          btnExcluir.textContent = "Excluir";
+          btnExcluir.className = "btn-small";
+          btnExcluir.style.marginLeft = "0.35rem";
+          btnExcluir.dataset.action = "excluir";
+          btnExcluir.dataset.id = String(l.id);
 
-        const btnExcluir = document.createElement("button");
-        btnExcluir.textContent = "Excluir";
-        btnExcluir.className = "btn-small";
-        btnExcluir.style.marginLeft = "0.35rem";
-        btnExcluir.dataset.action = "excluir";
-        btnExcluir.dataset.id = String(l.id);
+          tdAcoes.appendChild(btnEditar);
+          tdAcoes.appendChild(btnExcluir);
+          tr.appendChild(tdAcoes);
 
-        tdAcoes.appendChild(btnEditar);
-        tdAcoes.appendChild(btnExcluir);
-        tr.appendChild(tdAcoes);
-
-        tbody.appendChild(tr);
-      });
+          tbody.appendChild(tr);
+        });
     }
 
     // ===== Gráficos =====
@@ -909,7 +1042,52 @@
       });
     }
 
-    // ===== Eventos da tabela de lançamentos =====
+    // ===== Filtros de lançamentos =====
+    function preencherFiltroCategoria() {
+      const filtroCatEl = document.getElementById("filtroCategoria");
+      if (!filtroCatEl) return;
+
+      filtroCatEl.innerHTML = "";
+      const optTodas = document.createElement("option");
+      optTodas.value = "todas";
+      optTodas.textContent = "Todas";
+      filtroCatEl.appendChild(optTodas);
+
+      const todasCategorias = [...categoriasGanhos, ...categoriasGastos];
+      todasCategorias.forEach(cat => {
+        const opt = document.createElement("option");
+        opt.value = cat;
+        opt.textContent = cat;
+        filtroCatEl.appendChild(opt);
+      });
+    }
+
+    function configurarFiltrosLancamentos() {
+      const filtroTipoEl = document.getElementById("filtroTipo");
+      const filtroMesEl = document.getElementById("filtroMes");
+      const filtroCatEl = document.getElementById("filtroCategoria");
+      const btnLimpar = document.getElementById("btnLimparFiltros");
+      const yearSelect = document.getElementById("yearSelect");
+
+      const atualizar = () => {
+        const ano = yearSelect.value;
+        if (!ano) return;
+        preencherTabelaLancamentos(ano);
+      };
+
+      filtroTipoEl.addEventListener("change", atualizar);
+      filtroMesEl.addEventListener("change", atualizar);
+      filtroCatEl.addEventListener("change", atualizar);
+
+      btnLimpar.addEventListener("click", () => {
+        filtroTipoEl.value = "todos";
+        filtroMesEl.value = "todos";
+        filtroCatEl.value = "todas";
+        atualizar();
+      });
+    }
+
+    // ===== Eventos da tabela de lançamentos (editar/excluir) =====
     function configurarTabelaLancamentosEventos() {
       const tbody = document.getElementById("tabelaLancamentos");
       const yearSelect = document.getElementById("yearSelect");
@@ -1014,6 +1192,8 @@
       configurarTabelaLancamentosEventos();
       configurarBotaoAddAno();
       atualizarOpcoesCategoria();
+      preencherFiltroCategoria();
+      configurarFiltrosLancamentos();
       atualizarAnoAtual();
     });
   </script>
