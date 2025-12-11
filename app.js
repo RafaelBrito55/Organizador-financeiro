@@ -153,17 +153,38 @@ function garantirAno(ano) {
   }
 }
 
-// cria/atualiza um lançamento único (tipo+mes+categoria)
-function upsertLancamento(ano, tipo, mes, categoria, valor, descricao) {
+/**
+ * Cria/atualiza um lançamento.
+ *
+ * - Para categorias **fixas** (ehFixa = true): mantém 1 por (tipo, mês, categoria),
+ *   sobrescrevendo se já existir.
+ * - Para categorias **não fixas** (ehFixa = false): SEMPRE adiciona um novo lançamento,
+ *   permitindo vários "Outros gastos" no mesmo mês.
+ */
+function upsertLancamento(ano, tipo, mes, categoria, valor, descricao, ehFixa = false) {
   garantirAno(ano);
   const lista = dadosPorAno[ano].lancamentos;
-  const existente = lista.find(
-    (l) => l.tipo === tipo && l.mes === mes && l.categoria === categoria
-  );
-  if (existente) {
-    existente.valor = valor;
-    existente.descricao = descricao;
+
+  if (ehFixa) {
+    // mantém único por tipo+mes+categoria
+    const existente = lista.find(
+      (l) => l.tipo === tipo && l.mes === mes && l.categoria === categoria
+    );
+    if (existente) {
+      existente.valor = valor;
+      existente.descricao = descricao;
+    } else {
+      lista.push({
+        id: nextId++,
+        tipo,
+        mes,
+        categoria,
+        valor,
+        descricao
+      });
+    }
   } else {
+    // não fixa → sempre adiciona novo
     lista.push({
       id: nextId++,
       tipo,
@@ -550,13 +571,14 @@ function configurarFormLancamento() {
 
       if (aplicarTodos) {
         for (let m = 0; m < 12; m++) {
-          upsertLancamento(ano, tipo, m, categoria, valor, desc);
+          upsertLancamento(ano, tipo, m, categoria, valor, desc, true);
         }
       } else {
-        upsertLancamento(ano, tipo, mes, categoria, valor, desc);
+        upsertLancamento(ano, tipo, mes, categoria, valor, desc, true);
       }
     } else {
-      upsertLancamento(ano, tipo, mes, categoria, valor, desc);
+      // Não fixa → sempre adiciona novo lançamento
+      upsertLancamento(ano, tipo, mes, categoria, valor, desc, ehFixa);
     }
 
     form.reset();
