@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <title>Meu Dinheiro na Conta – Acesso</title>
+
+  <!-- SEO básico -->
+  <meta name="description"
+        content="Meu Dinheiro na Conta – controle financeiro anual simples, rápido e direto. Registre ganhos, gastos, acompanhe gráficos e veja quanto realmente sobra no fim do ano. 100% gratuito.">
+
+  <meta name="keywords"
+        content="controle financeiro, organizar finanças, gastos mensais, planilha financeira, aplicativo financeiro, dinheiro, orçamento anual, controle de gastos, gestão financeira pessoal">
+
+  <meta name="author" content="Meu Dinheiro na Conta">
+
+  <!-- SEO técnica -->
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Open Graph (compartilhamento) -->
+  <meta property="og:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
+  <meta property="og:description"
+        content="Controle financeiro anual simples, visual e rápido. Adicione ganhos, gastos, veja gráficos e descubra seu saldo real. Gratuito.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://meudinheironaconta.com.br/">
+  <meta property="og:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
+  <meta name="twitter:description"
+        content="Controle anual de ganhos e gastos. Visual, rápido e gratuito.">
+  <meta name="twitter:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="login.css">
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+  <!-- Config do Firebase -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Lógica de login/cadastro/esqueci senha -->
+  <script src="auth.js" defer></script>
+</head>
+
+<body>
+  <div class="page-wrapper">
+    <!-- LADO ESQUERDO: EXPLICAÇÃO DO PRODUTO -->
+    <section class="info-panel">
+      <div class="info-content">
+        <img src="logo-meu-dinheiro-na-conta.svg"
+             alt="Meu Dinheiro na Conta"
+             class="logo-app">
+
+        <h1 class="info-title">Meu Dinheiro na Conta</h1>
+        <p class="info-subtitle">
+          Um controle financeiro anual pensado para gente real: simples de usar, visual e direto ao ponto.
+        </p>
+
+        <ul class="info-list">
+          <li>Organize seus <strong>ganhos e gastos</strong> mês a mês.</li>
+          <li>Veja <strong>gráficos</strong> com o resumo do ano em segundos.</li>
+          <li>Acompanhe seus <strong>salários, despesas fixas e variáveis</strong> sem planilhas.</li>
+          <li>Seus dados ficam <strong>salvos na nuvem</strong>, acessíveis de qualquer lugar.</li>
+        </ul>
+
+        <p class="info-highlight">
+          100% gratuito. Sem planos pagos, sem pegadinha.
+          É só criar sua conta e começar a usar.
+        </p>
+      </div>
+    </section>
+
+    <!-- LADO DIREITO: LOGIN / CADASTRO -->
+    <section class="auth-panel">
+      <div class="card">
+        <h2>Entre na sua conta</h2>
+        <p class="subtitle">Use seu email e senha para acessar seu painel financeiro.</p>
+
+        <div class="tabs">
+          <button id="btnLoginTab" class="active">Entrar</button>
+          <button id="btnSignupTab">Criar conta</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" class="form active">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required>
+
+          <label>Senha</label>
+          <input type="password" id="loginPassword" required>
+
+          <button type="submit" class="btn-green">Entrar</button>
+
+          <p class="forgot-link" id="btnForgotPassword">Esqueci minha senha</p>
+
+          <p class="msg-error" id="loginError"></p>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="form">
+          <label>Email</label>
+          <input type="email" id="signupEmail" required>
+
+          <label>Senha (mín. 6 caracteres)</label>
+          <input type="password" id="signupPassword" required>
+
+          <button type="submit" class="btn-green">Criar conta</button>
+
+          <p class="msg-error" id="signupError"></p>
+        </form>
+
+        <!-- ESQUECI A SENHA -->
+        <form id="forgotForm" class="form">
+          <p class="subtitle">
+            Digite o email cadastrado que nós vamos enviar um link para você redefinir sua senha.
+          </p>
+
+          <label>Email</label>
+          <input type="email" id="forgotEmail" required>
+
+          <button type="submit" class="btn-green">Enviar link de recuperação</button>
+
+          <p class="msg-error" id="forgotError"></p>
+          <p class="msg-success" id="forgotSuccess"></p>
+
+          <p class="forgot-link" id="btnBackToLogin">Voltar para o login</p>
+        </form>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
+
+
+
+
+/* Link "Esqueci minha senha" com cara de botão */
+.forgot-link {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: #111827;
+  cursor: pointer;
+  display: inline-block;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+/* Efeito de botão ao passar o mouse */
+.forgot-link:hover {
+  background-color: #f3f4f6;         /* leve cinza, igual botão clarinho */
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+

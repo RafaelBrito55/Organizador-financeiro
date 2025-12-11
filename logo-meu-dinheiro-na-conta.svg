@@ -1,0 +1,18 @@
+<svg width="260" height="70" viewBox="0 0 260 70" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo opcional (pode remover se quiser transparente) -->
+  <rect x="0" y="0" width="260" height="70" rx="14" fill="#ffffff"/>
+
+  <!-- Ícone: círculo com seta e símbolo de dinheiro -->
+  <circle cx="40" cy="35" r="24" fill="#0F766E"/>
+  <path d="M40 20 L40 44" stroke="#ECFDF5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M33 28 L40 21 L47 28" fill="none" stroke="#ECFDF5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 39 C36 42 38 43 40 43 C42 43 44 42 46 40" fill="none" stroke="#ECFDF5" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Texto -->
+  <text x="75" y="30" fill="#0F172A" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700">
+    Meu Dinheiro
+  </text>
+  <text x="75" y="50" fill="#059669" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18" font-weight="600">
+    na Conta
+  </text>
+</svg>
