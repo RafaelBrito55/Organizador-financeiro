@@ -1,3 +1,7 @@
+// app.js — Meu Dinheiro na Conta
+// Objetivo: cada lançamento é uma linha (não sobrescreve). Você pode ter vários itens
+// na mesma categoria e no mesmo mês, com descrições diferentes.
+
 // ===== Categorias =====
 const categoriasGanhos = [
   "Salário",
@@ -20,741 +24,668 @@ const categoriasGastos = [
   "Outros gastos"
 ];
 
-const categoriasFixasGanhos = ["Salário", "13º salário", "Férias"];
-const categoriasFixasGastos = [
-  "Aluguel",
-  "Despesas fixas",
-  "Cartões de crédito",
-  "Saúde",
-  "Educação",
-  "Impostos"
-];
-
 const mesesLabels = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
   "Jul", "Ago", "Set", "Out", "Nov", "Dez"
 ];
 
+// ===== DOM =====
+const yearSelect = document.getElementById("yearSelect");
+const btnAddYear = document.getElementById("btnAddYear");
+
+const formLancamento = document.getElementById("formLancamento");
+const tipoLancamento = document.getElementById("tipoLancamento");
+const mesLancamento = document.getElementById("mesLancamento");
+const categoriaLancamento = document.getElementById("categoriaLancamento");
+const valorLancamento = document.getElementById("valorLancamento");
+const descricaoLancamento = document.getElementById("descricaoLancamento");
+
+const tabelaResumo = document.getElementById("tabelaResumo");
+
+const filtroTipo = document.getElementById("filtroTipo");
+const filtroMes = document.getElementById("filtroMes");
+const filtroCategoria = document.getElementById("filtroCategoria");
+const btnLimparFiltros = document.getElementById("btnLimparFiltros");
+const tabelaLancamentos = document.getElementById("tabelaLancamentos");
+
+const anoLegenda1 = document.getElementById("anoLegenda1");
+
+const canvasBar = document.getElementById("barGastosCategorias");
+const canvasLine = document.getElementById("lineGanhosGastos");
+
+// ===== Estado =====
 // ano -> { lancamentos: [ {id,tipo,mes,categoria,valor,descricao} ] }
 const dadosPorAno = {};
 let nextId = 1;
 
-// controle: ano -> { "tipo|categoria": true } já perguntado
-const perguntasFixasPorAno = {};
-
-// ===== Firebase (Auth + Firestore) =====
+// ===== Firebase =====
 let authFirebase = null;
 let db = null;
 let currentUserUid = null;
 let saveTimeoutId = null;
+let firebaseCarregado = false;
 
-try {
-  if (typeof firebase !== "undefined" && firebase.apps && firebase.apps.length > 0) {
-    authFirebase = firebase.auth();
-    db = firebase.firestore();
-  } else {
-    console.warn("Firebase não inicializado em app.js.");
-  }
-} catch (e) {
-  console.error("Erro ao acessar Firebase em app.js:", e);
+if (typeof firebase !== "undefined" && firebase?.apps?.length) {
+  authFirebase = firebase.auth();
+  db = firebase.firestore();
 }
 
-// Salva os dados do usuário logado no Firestore (debounce)
-function dispararSaveFirebase() {
+// ===== Persistência =====
+function salvarFirebase() {
   if (!db || !currentUserUid) return;
-
-  if (saveTimeoutId) clearTimeout(saveTimeoutId);
+  clearTimeout(saveTimeoutId);
 
   saveTimeoutId = setTimeout(async () => {
     try {
-      await db
-        .collection("usuarios")
-        .doc(currentUserUid)
-        .set(
-          {
-            dadosPorAno,
-            perguntasFixasPorAno,
-            nextId
-          },
-          { merge: true }
-        );
-      console.log("Dados salvos no Firebase.");
-    } catch (e) {
-      console.error("Erro ao salvar dados no Firebase:", e);
+      await db.collection("usuarios").doc(currentUserUid).set(
+        { dadosPorAno, nextId },
+        { merge: true }
+      );
+    } catch (err) {
+      console.error("Erro ao salvar no Firebase:", err);
     }
-  }, 800);
+  }, 450);
 }
 
-// Carrega dados do Firestore para o usuário logado
-async function carregarDadosDoFirebase() {
-  if (!db || !currentUserUid) return;
-
-  try {
-    const docRef = db.collection("usuarios").doc(currentUserUid);
-    const snap = await docRef.get();
-
-    if (snap.exists) {
-      const data = snap.data() || {};
-
-      // Limpa objetos atuais
-      Object.keys(dadosPorAno).forEach((k) => delete dadosPorAno[k]);
-      Object.keys(perguntasFixasPorAno).forEach((k) => delete perguntasFixasPorAno[k]);
-
-      if (data.dadosPorAno && typeof data.dadosPorAno === "object") {
-        Object.assign(dadosPorAno, data.dadosPorAno);
-      }
-
-      if (data.perguntasFixasPorAno && typeof data.perguntasFixasPorAno === "object") {
-        Object.assign(perguntasFixasPorAno, data.perguntasFixasPorAno);
-      }
-
-      if (typeof data.nextId === "number") {
-        nextId = data.nextId;
-      }
-
-      console.log("Dados carregados do Firebase.");
-    } else {
-      console.log("Nenhum dado salvo ainda para este usuário.");
-    }
-  } catch (e) {
-    console.error("Erro ao carregar dados do Firebase:", e);
-  }
-
-  // Atualiza UI com o que estiver em dadosPorAno
-  const anos = Object.keys(dadosPorAno);
-  if (!anos.length) {
-    const anoAtual = new Date().getFullYear();
-    garantirAno(anoAtual);
-    popularSelectAnos(String(anoAtual));
-  } else {
-    const ordenados = anos.map((n) => parseInt(n, 10)).sort((a, b) => a - b);
-    const ultimo = String(ordenados[ordenados.length - 1]);
-    popularSelectAnos(ultimo);
-  }
-
-  atualizarAnoAtual();
-}
-
-// ===== Utilitários =====
-function formatarMoeda(valor) {
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
+function recalcularNextId() {
+  let maxId = 0;
+  Object.values(dadosPorAno).forEach(anoData => {
+    (anoData?.lancamentos || []).forEach(l => {
+      if (typeof l?.id === "number" && l.id > maxId) maxId = l.id;
+    });
   });
+  nextId = Math.max(1, maxId + 1);
 }
 
-function garantirAno(ano) {
-  const chave = String(ano);
-  if (!dadosPorAno[chave]) {
-    dadosPorAno[chave] = { lancamentos: [] };
+// Migração defensiva: se existir uma estrutura antiga (ganhos/gastos por mês/categoria),
+// converte tudo para o formato "lancamentos: []".
+function migrarEstruturaAntigaSePrecisar(ano) {
+  const anoData = dadosPorAno[ano];
+  if (!anoData || Array.isArray(anoData.lancamentos)) {
+    if (anoData && !Array.isArray(anoData.lancamentos)) anoData.lancamentos = [];
+    return;
   }
-  if (!perguntasFixasPorAno[chave]) {
-    perguntasFixasPorAno[chave] = {};
-  }
-}
 
-/**
- * Cria/atualiza um lançamento.
- *
- * - Para categorias **fixas** (ehFixa = true): mantém 1 por (tipo, mês, categoria),
- *   sobrescrevendo se já existir.
- * - Para categorias **não fixas** (ehFixa = false): SEMPRE adiciona um novo lançamento,
- *   permitindo vários "Outros gastos" no mesmo mês.
- */
-function upsertLancamento(ano, tipo, mes, categoria, valor, descricao, ehFixa = false) {
-  garantirAno(ano);
-  const lista = dadosPorAno[ano].lancamentos;
+  const lancamentos = [];
+  let idTemp = 1;
 
-  if (ehFixa) {
-    // mantém único por tipo+mes+categoria
-    const existente = lista.find(
-      (l) => l.tipo === tipo && l.mes === mes && l.categoria === categoria
-    );
-    if (existente) {
-      existente.valor = valor;
-      existente.descricao = descricao;
-    } else {
-      lista.push({
-        id: nextId++,
-        tipo,
-        mes,
-        categoria,
-        valor,
-        descricao
-      });
+  const pushItem = (tipo, mes, categoria, item) => {
+    if (item == null) return;
+
+    // Se for array, adiciona todos (isso cobre "Outros gastos" antigo, por ex.)
+    if (Array.isArray(item)) {
+      item.forEach(it => pushItem(tipo, mes, categoria, it));
+      return;
     }
-  } else {
-    // não fixa → sempre adiciona novo
-    lista.push({
-      id: nextId++,
+
+    // Aceita tanto {valor, descricao} quanto número puro
+    let valor = null;
+    let descricao = "";
+
+    if (typeof item === "number") {
+      valor = item;
+    } else if (typeof item === "string") {
+      const v = parseFloat(item.replace(",", "."));
+      if (!Number.isNaN(v)) valor = v;
+    } else if (typeof item === "object") {
+      const vRaw = item.valor ?? item.value ?? item.amount ?? item.v;
+      if (typeof vRaw === "number") valor = vRaw;
+      else if (typeof vRaw === "string") {
+        const v = parseFloat(vRaw.replace(",", "."));
+        if (!Number.isNaN(v)) valor = v;
+      }
+
+      descricao = (item.descricao ?? item.desc ?? item.nome ?? item.label ?? "").toString().trim();
+    }
+
+    if (typeof mes !== "number" || mes < 0 || mes > 11) return;
+    if (!categoria || typeof categoria !== "string") return;
+    if (typeof valor !== "number" || Number.isNaN(valor)) return;
+
+    lancamentos.push({
+      id: idTemp++,
       tipo,
       mes,
       categoria,
       valor,
       descricao
     });
+  };
+
+  const isMonthKey = (k) => /^\d+$/.test(k) && +k >= 0 && +k <= 11;
+
+  const extrairDeRaiz = (tipo, raiz) => {
+    if (!raiz || typeof raiz !== "object") return;
+
+    const keys = Object.keys(raiz);
+    if (keys.length === 0) return;
+
+    // Caso 1: raiz[mes][categoria] = item
+    if (keys.every(isMonthKey)) {
+      keys.forEach(mk => {
+        const mes = parseInt(mk, 10);
+        const porCat = raiz[mk];
+        if (porCat && typeof porCat === "object") {
+          Object.keys(porCat).forEach(cat => {
+            pushItem(tipo, mes, cat, porCat[cat]);
+          });
+        }
+      });
+      return;
+    }
+
+    // Caso 2: raiz[categoria][mes] = item
+    keys.forEach(cat => {
+      const porMes = raiz[cat];
+      if (porMes && typeof porMes === "object") {
+        Object.keys(porMes).forEach(mk => {
+          if (!isMonthKey(mk)) return;
+          const mes = parseInt(mk, 10);
+          pushItem(tipo, mes, cat, porMes[mk]);
+        });
+      }
+    });
+  };
+
+  // Tenta achar possíveis chaves antigas
+  const ganhosAntigos = anoData.ganhos || anoData.ganho || anoData.receitas || null;
+  const gastosAntigos = anoData.gastos || anoData.gasto || anoData.despesas || null;
+
+  extrairDeRaiz("ganho", ganhosAntigos);
+  extrairDeRaiz("gasto", gastosAntigos);
+
+  anoData.lancamentos = lancamentos;
+
+  // Limpa chaves antigas (evita bagunça)
+  delete anoData.ganhos;
+  delete anoData.ganho;
+  delete anoData.receitas;
+  delete anoData.gastos;
+  delete anoData.gasto;
+  delete anoData.despesas;
+}
+
+async function carregarDadosDoFirebase() {
+  if (!db || !currentUserUid) return;
+
+  try {
+    const snap = await db.collection("usuarios").doc(currentUserUid).get();
+    if (snap.exists) {
+      const data = snap.data() || {};
+      Object.assign(dadosPorAno, data.dadosPorAno || {});
+      if (typeof data.nextId === "number") nextId = data.nextId;
+    }
+
+    // Migra anos antigos, se houver
+    Object.keys(dadosPorAno).forEach(ano => migrarEstruturaAntigaSePrecisar(ano));
+
+    // Garante nextId consistente (evita colisões depois do reload)
+    recalcularNextId();
+
+    firebaseCarregado = true;
+
+    popularSelectAnos();
+    atualizarAnoAtual();
+  } catch (err) {
+    console.error("Erro ao carregar dados do Firebase:", err);
+    firebaseCarregado = true; // libera uso mesmo assim
+    popularSelectAnos();
+    atualizarAnoAtual();
   }
-
-  dispararSaveFirebase();
 }
 
-// ===== Modal de confirmação "Sim" / "Não" =====
-function showYesNoDialog(message) {
-  return new Promise((resolve) => {
-    const overlay = document.createElement("div");
-    overlay.className = "confirm-overlay";
+// ===== Utils =====
+function garantirAno(ano) {
+  if (!dadosPorAno[ano]) dadosPorAno[ano] = { lancamentos: [] };
+  if (!Array.isArray(dadosPorAno[ano].lancamentos)) dadosPorAno[ano].lancamentos = [];
+}
 
-    overlay.innerHTML = `
-      <div class="confirm-box">
-        <div class="confirm-title">Aplicar para o ano todo?</div>
-        <div class="confirm-message">${message}</div>
-        <div class="confirm-buttons">
-          <button class="btn-confirm-nao">Não</button>
-          <button class="btn-confirm-sim">Sim</button>
-        </div>
-      </div>
-    `;
+function formatarMoeda(v) {
+  return (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
-    const btnNao = overlay.querySelector(".btn-confirm-nao");
-    const btnSim = overlay.querySelector(".btn-confirm-sim");
+function normalizarValorNumero(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(".", "").replace(",", "."));
+    return Number.isNaN(n) ? NaN : n;
+  }
+  return NaN;
+}
 
-    btnNao.addEventListener("click", () => {
-      document.body.removeChild(overlay);
-      resolve(false);
-    });
+// ===== Lançamentos =====
+function adicionarLancamento(ano, tipo, mes, categoria, valor, descricao) {
+  garantirAno(ano);
 
-    btnSim.addEventListener("click", () => {
-      document.body.removeChild(overlay);
-      resolve(true);
-    });
-
-    document.body.appendChild(overlay);
+  dadosPorAno[ano].lancamentos.push({
+    id: nextId++,
+    tipo,
+    mes,
+    categoria,
+    valor,
+    descricao
   });
+
+  salvarFirebase();
 }
 
-function jaPerguntouFixo(ano, tipo, categoria) {
+function editarLancamento(ano, id, novosDados) {
   garantirAno(ano);
-  const chave = `${tipo}|${categoria}`;
-  return !!perguntasFixasPorAno[ano][chave];
+  const idx = dadosPorAno[ano].lancamentos.findIndex(l => l.id === id);
+  if (idx === -1) return;
+
+  dadosPorAno[ano].lancamentos[idx] = {
+    ...dadosPorAno[ano].lancamentos[idx],
+    ...novosDados
+  };
+
+  salvarFirebase();
 }
 
-function marcarPerguntadoFixo(ano, tipo, categoria) {
+function excluirLancamento(ano, id) {
   garantirAno(ano);
-  const chave = `${tipo}|${categoria}`;
-  perguntasFixasPorAno[ano][chave] = true;
+  dadosPorAno[ano].lancamentos = dadosPorAno[ano].lancamentos.filter(l => l.id !== id);
+  salvarFirebase();
 }
 
 // ===== Cálculos =====
 function calcularTotaisMes(ano) {
   garantirAno(ano);
-  const lancamentos = dadosPorAno[ano].lancamentos || [];
-  const ganhosMensais = Array(12).fill(0);
-  const gastosMensais = Array(12).fill(0);
+  const ganhos = Array(12).fill(0);
+  const gastos = Array(12).fill(0);
 
-  lancamentos.forEach((l) => {
-    if (l.tipo === "ganho") ganhosMensais[l.mes] += l.valor;
-    else gastosMensais[l.mes] += l.valor;
+  dadosPorAno[ano].lancamentos.forEach(l => {
+    if (l.tipo === "ganho") ganhos[l.mes] += l.valor;
+    else gastos[l.mes] += l.valor;
   });
 
-  return { ganhosMensais, gastosMensais };
+  return { ganhos, gastos };
 }
 
-function calcularTotaisGastosPorCategoria(ano) {
+function calcularGastosPorCategoria(ano) {
   garantirAno(ano);
-  const lancamentos = dadosPorAno[ano].lancamentos || [];
   const mapa = {};
-  lancamentos.forEach((l) => {
+  categoriasGastos.forEach(c => { mapa[c] = 0; });
+
+  dadosPorAno[ano].lancamentos.forEach(l => {
     if (l.tipo !== "gasto") return;
-    mapa[l.categoria] = (mapa[l.categoria] || 0) + l.valor;
+    if (!mapa.hasOwnProperty(l.categoria)) mapa[l.categoria] = 0;
+    mapa[l.categoria] += l.valor;
   });
+
   return mapa;
 }
 
-// ===== Resumo mensal =====
-function preencherTabelaResumo(ano) {
-  const { ganhosMensais, gastosMensais } = calcularTotaisMes(ano);
-  const tbody = document.getElementById("tabelaResumo");
-  tbody.innerHTML = "";
+// ===== UI: Categorias no form =====
+function atualizarCategoriasForm() {
+  if (!tipoLancamento || !categoriaLancamento) return;
 
-  const linhaGanhos = document.createElement("tr");
-  const linhaGastos = document.createElement("tr");
-  const linhaSaldo = document.createElement("tr");
+  const tipo = tipoLancamento.value;
+  categoriaLancamento.innerHTML = "";
 
-  linhaGanhos.innerHTML = '<td><strong>Ganhos</strong></td>';
-  linhaGastos.innerHTML = '<td><strong>Gastos</strong></td>';
-  linhaSaldo.innerHTML = '<td><strong>Saldo</strong></td>';
-
-  ganhosMensais.forEach((ganho, idx) => {
-    const gasto = gastosMensais[idx];
-    const saldo = ganho - gasto;
-
-    const tdG = document.createElement("td");
-    tdG.textContent = formatarMoeda(ganho);
-    linhaGanhos.appendChild(tdG);
-
-    const tdGt = document.createElement("td");
-    tdGt.textContent = formatarMoeda(gasto);
-    linhaGastos.appendChild(tdGt);
-
-    const tdS = document.createElement("td");
-    tdS.textContent = formatarMoeda(saldo);
-    tdS.classList.add(saldo >= 0 ? "saldo-positivo" : "saldo-negativo");
-    linhaSaldo.appendChild(tdS);
+  const lista = tipo === "ganho" ? categoriasGanhos : categoriasGastos;
+  lista.forEach(c => {
+    const o = document.createElement("option");
+    o.value = c;
+    o.textContent = c;
+    categoriaLancamento.appendChild(o);
   });
-
-  tbody.appendChild(linhaGanhos);
-  tbody.appendChild(linhaGastos);
-  tbody.appendChild(linhaSaldo);
-
-  const totalGanhosAno = ganhosMensais.reduce((a, b) => a + b, 0);
-  const totalGastosAno = gastosMensais.reduce((a, b) => a + b, 0);
-  const totalSaldoAno = totalGanhosAno - totalGastosAno;
-
-  document.getElementById("resumoGanhosAno").textContent =
-    formatarMoeda(totalGanhosAno);
-  document.getElementById("resumoGastosAno").textContent =
-    formatarMoeda(totalGastosAno);
-  document.getElementById("resumoSaldoAno").textContent =
-    formatarMoeda(totalSaldoAno);
-
-  document.getElementById("resumoGanhosMes").textContent =
-    `Média mensal: ${formatarMoeda(totalGanhosAno / 12)}`;
-  document.getElementById("resumoGastosMes").textContent =
-    `Média mensal: ${formatarMoeda(totalGastosAno / 12)}`;
-  document.getElementById("resumoSaldoMes").textContent =
-    `Média mensal: ${formatarMoeda(totalSaldoAno / 12)}`;
 }
 
-// ===== Tabela de lançamentos (com filtros) =====
-function preencherTabelaLancamentos(ano) {
-  garantirAno(ano);
-  const tbody = document.getElementById("tabelaLancamentos");
-  tbody.innerHTML = "";
+// ===== UI: Resumo =====
+function preencherResumo(ano) {
+  const { ganhos, gastos } = calcularTotaisMes(ano);
+  if (!tabelaResumo) return;
 
-  const lista = dadosPorAno[ano].lancamentos || [];
+  tabelaResumo.innerHTML = "";
 
-  const filtroTipoEl = document.getElementById("filtroTipo");
-  const filtroMesEl = document.getElementById("filtroMes");
-  const filtroCatEl = document.getElementById("filtroCategoria");
+  const linhaG = document.createElement("tr");
+  const linhaGt = document.createElement("tr");
+  const linhaS = document.createElement("tr");
 
-  const tipoFiltro = filtroTipoEl ? filtroTipoEl.value : "todos";
-  const mesFiltro = filtroMesEl ? filtroMesEl.value : "todos";
-  const catFiltro = filtroCatEl ? filtroCatEl.value : "todas";
+  linhaG.innerHTML = "<td><strong>Ganhos</strong></td>";
+  linhaGt.innerHTML = "<td><strong>Gastos</strong></td>";
+  linhaS.innerHTML = "<td><strong>Saldo</strong></td>";
 
-  const filtrados = lista.filter((l) => {
-    const okTipo = tipoFiltro === "todos" || l.tipo === tipoFiltro;
-    const okMes =
-      mesFiltro === "todos" || l.mes === parseInt(mesFiltro, 10);
-    const okCat =
-      catFiltro === "todas" || l.categoria === catFiltro;
-    return okTipo && okMes && okCat;
+  ganhos.forEach((g, i) => {
+    const gt = gastos[i];
+    const s = g - gt;
+
+    linhaG.innerHTML += `<td>${formatarMoeda(g)}</td>`;
+    linhaGt.innerHTML += `<td>${formatarMoeda(gt)}</td>`;
+    linhaS.innerHTML += `<td class="${s >= 0 ? "saldo-positivo" : "saldo-negativo"}">${formatarMoeda(s)}</td>`;
   });
 
-  if (!filtrados.length) {
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 6;
-    td.textContent = "Nenhum lançamento com os filtros atuais.";
-    td.style.textAlign = "center";
-    td.style.color = "#9ca3af";
-    tr.appendChild(td);
-    tbody.appendChild(tr);
+  tabelaResumo.append(linhaG, linhaGt, linhaS);
+
+  const totalG = ganhos.reduce((a, b) => a + b, 0);
+  const totalGt = gastos.reduce((a, b) => a + b, 0);
+
+  const resumoGanhosAno = document.getElementById("resumoGanhosAno");
+  const resumoGastosAno = document.getElementById("resumoGastosAno");
+  const resumoSaldoAno = document.getElementById("resumoSaldoAno");
+
+  if (resumoGanhosAno) resumoGanhosAno.textContent = formatarMoeda(totalG);
+  if (resumoGastosAno) resumoGastosAno.textContent = formatarMoeda(totalGt);
+  if (resumoSaldoAno) resumoSaldoAno.textContent = formatarMoeda(totalG - totalGt);
+}
+
+// ===== UI: Filtros =====
+function atualizarOpcoesFiltroCategoria() {
+  if (!filtroCategoria || !filtroTipo) return;
+
+  const tipo = filtroTipo.value;
+  const lista =
+    tipo === "ganho" ? categoriasGanhos :
+    tipo === "gasto" ? categoriasGastos :
+    [...categoriasGanhos, ...categoriasGastos];
+
+  const atual = filtroCategoria.value;
+
+  filtroCategoria.innerHTML = "";
+  const optTodos = document.createElement("option");
+  optTodos.value = "todos";
+  optTodos.textContent = "Todas";
+  filtroCategoria.appendChild(optTodos);
+
+  lista.forEach(c => {
+    const o = document.createElement("option");
+    o.value = c;
+    o.textContent = c;
+    filtroCategoria.appendChild(o);
+  });
+
+  // tenta manter seleção atual
+  if (atual && Array.from(filtroCategoria.options).some(o => o.value === atual)) {
+    filtroCategoria.value = atual;
+  } else {
+    filtroCategoria.value = "todos";
+  }
+}
+
+function obterLancamentosFiltrados(ano) {
+  garantirAno(ano);
+  const tipo = filtroTipo?.value || "todos";
+  const mes = filtroMes?.value || "todos";
+  const categoria = filtroCategoria?.value || "todos";
+
+  return dadosPorAno[ano].lancamentos.filter(l => {
+    if (tipo !== "todos" && l.tipo !== tipo) return false;
+    if (mes !== "todos" && l.mes !== parseInt(mes, 10)) return false;
+    if (categoria !== "todos" && l.categoria !== categoria) return false;
+    return true;
+  });
+}
+
+// ===== UI: Tabela de lançamentos =====
+function renderTabelaLancamentos(ano) {
+  if (!tabelaLancamentos) return;
+
+  const lista = obterLancamentosFiltrados(ano)
+    .slice()
+    .sort((a, b) => (a.mes - b.mes) || a.tipo.localeCompare(b.tipo) || a.categoria.localeCompare(b.categoria) || (a.id - b.id));
+
+  if (lista.length === 0) {
+    tabelaLancamentos.innerHTML = '<tr><td colspan="6">Nenhum lançamento encontrado.</td></tr>';
     return;
   }
 
-  filtrados
-    .slice()
-    .sort((a, b) => a.mes - b.mes || a.id - b.id)
-    .forEach((l) => {
-      const tr = document.createElement("tr");
+  tabelaLancamentos.innerHTML = "";
 
-      const tdTipo = document.createElement("td");
-      const spanTipo = document.createElement("span");
-      spanTipo.className =
-        "badge " + (l.tipo === "ganho" ? "badge-ganho" : "badge-gasto");
-      spanTipo.textContent = l.tipo === "ganho" ? "Ganho" : "Gasto";
-      tdTipo.appendChild(spanTipo);
-      tr.appendChild(tdTipo);
+  lista.forEach(l => {
+    const tr = document.createElement("tr");
 
-      const tdMes = document.createElement("td");
-      tdMes.textContent = mesesLabels[l.mes];
-      tr.appendChild(tdMes);
+    const tdTipo = document.createElement("td");
+    tdTipo.innerHTML = `<span class="badge ${l.tipo === "ganho" ? "badge-ganho" : "badge-gasto"}">${l.tipo === "ganho" ? "Ganho" : "Gasto"}</span>`;
 
-      const tdCat = document.createElement("td");
-      tdCat.textContent = l.categoria;
-      tr.appendChild(tdCat);
+    const tdMes = document.createElement("td");
+    tdMes.textContent = mesesLabels[l.mes] || "";
 
-      const tdValor = document.createElement("td");
-      tdValor.textContent = formatarMoeda(l.valor);
-      tr.appendChild(tdValor);
+    const tdCat = document.createElement("td");
+    tdCat.textContent = l.categoria || "";
 
-      const tdDesc = document.createElement("td");
-      tdDesc.textContent = l.descricao || "";
-      tr.appendChild(tdDesc);
+    const tdValor = document.createElement("td");
+    tdValor.textContent = formatarMoeda(l.valor);
 
-      const tdAcoes = document.createElement("td");
-      const btnEditar = document.createElement("button");
-      btnEditar.textContent = "Editar";
-      btnEditar.className = "btn-small";
-      btnEditar.dataset.action = "editar";
-      btnEditar.dataset.id = String(l.id);
+    const tdDesc = document.createElement("td");
+    tdDesc.textContent = l.descricao || "";
 
-      const btnExcluir = document.createElement("button");
-      btnExcluir.textContent = "Excluir";
-      btnExcluir.className = "btn-small";
-      btnExcluir.style.marginLeft = "0.35rem";
-      btnExcluir.dataset.action = "excluir";
-      btnExcluir.dataset.id = String(l.id);
+    const tdAcoes = document.createElement("td");
 
-      tdAcoes.appendChild(btnEditar);
-      tdAcoes.appendChild(btnExcluir);
-      tr.appendChild(tdAcoes);
+    const btnEditar = document.createElement("button");
+    btnEditar.type = "button";
+    btnEditar.className = "btn-small";
+    btnEditar.textContent = "Editar";
+    btnEditar.addEventListener("click", () => {
+      const novoValorStr = prompt("Novo valor (R$):", String(l.valor).replace(".", ","));
+      if (novoValorStr === null) return;
+      const novoValor = normalizarValorNumero(novoValorStr);
+      if (Number.isNaN(novoValor)) {
+        alert("Valor inválido.");
+        return;
+      }
 
-      tbody.appendChild(tr);
+      const novaDesc = prompt("Descrição (opcional):", l.descricao || "");
+      if (novaDesc === null) return;
+
+      editarLancamento(ano, l.id, { valor: novoValor, descricao: (novaDesc || "").trim() });
+      atualizarAnoAtual();
     });
+
+    const btnExcluir = document.createElement("button");
+    btnExcluir.type = "button";
+    btnExcluir.className = "btn-small btn-outline";
+    btnExcluir.textContent = "Excluir";
+    btnExcluir.addEventListener("click", () => {
+      const ok = confirm("Excluir este lançamento?");
+      if (!ok) return;
+      excluirLancamento(ano, l.id);
+      atualizarAnoAtual();
+    });
+
+    tdAcoes.append(btnEditar, btnExcluir);
+
+    tr.append(tdTipo, tdMes, tdCat, tdValor, tdDesc, tdAcoes);
+    tabelaLancamentos.appendChild(tr);
+  });
 }
 
-// ===== Gráficos =====
-let barChartInstance = null;
-let lineChartInstance = null;
+// ===== Charts =====
+let chartBar = null;
+let chartLine = null;
 
 function atualizarGraficos(ano) {
-  const { ganhosMensais, gastosMensais } = calcularTotaisMes(ano);
-  const mapaGastosCat = calcularTotaisGastosPorCategoria(ano);
+  if (!canvasBar || !canvasLine || typeof Chart === "undefined") return;
 
-  const barCtx = document
-    .getElementById("barGastosCategorias")
-    .getContext("2d");
-  if (barChartInstance) barChartInstance.destroy();
-  barChartInstance = new Chart(barCtx, {
+  // Bar: gastos por categoria
+  const gastosPorCat = calcularGastosPorCategoria(ano);
+  const labelsBar = Object.keys(gastosPorCat);
+  const dataBar = labelsBar.map(k => gastosPorCat[k] || 0);
+
+  if (chartBar) chartBar.destroy();
+  chartBar = new Chart(canvasBar, {
     type: "bar",
     data: {
-      labels: Object.keys(mapaGastosCat),
-      datasets: [
-        { label: "Gastos (R$ / ano)", data: Object.values(mapaGastosCat) }
-      ]
+      labels: labelsBar,
+      datasets: [{ label: "Gastos (R$)", data: dataBar }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: "#4b5563", font: { size: 11 } }
-        }
-      },
+      plugins: { legend: { display: false } },
       scales: {
-        x: {
-          ticks: { color: "#6b7280", font: { size: 10 } },
-          grid: { display: false }
-        },
         y: {
           ticks: {
-            color: "#6b7280",
-            font: { size: 10 },
-            callback: (val) =>
-              val.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-                maximumFractionDigits: 0
-              })
-          },
-          grid: { color: "#e5e7eb" }
+            callback: (value) => {
+              try { return formatarMoeda(Number(value)); } catch { return value; }
+            }
+          }
         }
       }
     }
   });
 
-  const lineCtx = document
-    .getElementById("lineGanhosGastos")
-    .getContext("2d");
-  if (lineChartInstance) lineChartInstance.destroy();
-  lineChartInstance = new Chart(lineCtx, {
+  // Linha: ganhos x gastos por mês
+  const { ganhos, gastos } = calcularTotaisMes(ano);
+  if (chartLine) chartLine.destroy();
+  chartLine = new Chart(canvasLine, {
     type: "line",
     data: {
       labels: mesesLabels,
       datasets: [
-        { label: "Ganhos", data: ganhosMensais, tension: 0.3 },
-        { label: "Gastos", data: gastosMensais, tension: 0.3 }
+        { label: "Ganhos", data: ganhos, tension: 0.25 },
+        { label: "Gastos", data: gastos, tension: 0.25 }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: "#4b5563", font: { size: 11 } }
-        }
-      },
+      plugins: { legend: { display: true } },
       scales: {
-        x: {
-          ticks: { color: "#6b7280", font: { size: 10 } },
-          grid: { display: false }
-        },
         y: {
           ticks: {
-            color: "#6b7280",
-            font: { size: 10 },
-            callback: (val) =>
-              val.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-                maximumFractionDigits: 0
-              })
-          },
-          grid: { color: "#e5e7eb" }
+            callback: (value) => {
+              try { return formatarMoeda(Number(value)); } catch { return value; }
+            }
+          }
         }
       }
     }
   });
 
-  document.getElementById("anoLegenda1").textContent = ano;
-}
-
-// ===== Formulário de lançamentos =====
-function atualizarOpcoesCategoria() {
-  const tipo = document.getElementById("tipoLancamento").value;
-  const selectCat = document.getElementById("categoriaLancamento");
-  selectCat.innerHTML = "";
-
-  const lista = tipo === "ganho" ? categoriasGanhos : categoriasGastos;
-  lista.forEach((cat) => {
-    const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    selectCat.appendChild(opt);
-  });
-}
-
-function configurarFormLancamento() {
-  const form = document.getElementById("formLancamento");
-  const yearSelect = document.getElementById("yearSelect");
-
-  document
-    .getElementById("tipoLancamento")
-    .addEventListener("change", atualizarOpcoesCategoria);
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const ano = yearSelect.value;
-    if (!ano) return;
-
-    const tipo = document.getElementById("tipoLancamento").value;
-    const mes = parseInt(
-      document.getElementById("mesLancamento").value,
-      10
-    );
-    const categoria =
-      document.getElementById("categoriaLancamento").value;
-    const valorStr =
-      document.getElementById("valorLancamento").value;
-    const desc =
-      document.getElementById("descricaoLancamento").value.trim();
-
-    let valor = parseFloat(valorStr.replace(",", "."));
-    if (isNaN(valor) || valor < 0) {
-      alert("Valor inválido.");
-      return;
-    }
-
-    const ehFixa =
-      (tipo === "ganho" &&
-        categoriasFixasGanhos.includes(categoria)) ||
-      (tipo === "gasto" &&
-        categoriasFixasGastos.includes(categoria));
-
-    // Só pergunta uma vez por ano para cada tipo+categoria fixa
-    if (ehFixa && !jaPerguntouFixo(ano, tipo, categoria)) {
-      const aplicarTodos = await showYesNoDialog(
-        `Você quer aplicar este valor de "${categoria}" para todos os meses do ano ${ano}?`
-      );
-      marcarPerguntadoFixo(ano, tipo, categoria);
-
-      if (aplicarTodos) {
-        for (let m = 0; m < 12; m++) {
-          upsertLancamento(ano, tipo, m, categoria, valor, desc, true);
-        }
-      } else {
-        upsertLancamento(ano, tipo, mes, categoria, valor, desc, true);
-      }
-    } else {
-      // Não fixa → sempre adiciona novo lançamento
-      upsertLancamento(ano, tipo, mes, categoria, valor, desc, ehFixa);
-    }
-
-    form.reset();
-    document.getElementById("tipoLancamento").value = "ganho";
-    atualizarOpcoesCategoria();
-    atualizarAnoAtual();
-  });
-}
-
-// ===== Filtros de lançamentos =====
-function preencherFiltroCategoria() {
-  const filtroCatEl = document.getElementById("filtroCategoria");
-  if (!filtroCatEl) return;
-
-  filtroCatEl.innerHTML = "";
-  const optTodas = document.createElement("option");
-  optTodas.value = "todas";
-  optTodas.textContent = "Todas";
-  filtroCatEl.appendChild(optTodas);
-
-  const todasCategorias = [...categoriasGanhos, ...categoriasGastos];
-  todasCategorias.forEach((cat) => {
-    const opt = document.createElement("option");
-    opt.value = cat;
-    opt.textContent = cat;
-    filtroCatEl.appendChild(opt);
-  });
-}
-
-function configurarFiltrosLancamentos() {
-  const filtroTipoEl = document.getElementById("filtroTipo");
-  const filtroMesEl = document.getElementById("filtroMes");
-  const filtroCatEl = document.getElementById("filtroCategoria");
-  const btnLimpar = document.getElementById("btnLimparFiltros");
-  const yearSelect = document.getElementById("yearSelect");
-
-  const atualizar = () => {
-    const ano = yearSelect.value;
-    if (!ano) return;
-    preencherTabelaLancamentos(ano);
-  };
-
-  filtroTipoEl.addEventListener("change", atualizar);
-  filtroMesEl.addEventListener("change", atualizar);
-  filtroCatEl.addEventListener("change", atualizar);
-
-  btnLimpar.addEventListener("click", () => {
-    filtroTipoEl.value = "todos";
-    filtroMesEl.value = "todos";
-    filtroCatEl.value = "todas";
-    atualizar();
-  });
-}
-
-// ===== Eventos da tabela de lançamentos (editar/excluir) =====
-function configurarTabelaLancamentosEventos() {
-  const tbody = document.getElementById("tabelaLancamentos");
-  const yearSelect = document.getElementById("yearSelect");
-
-  tbody.addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-
-    const action = btn.dataset.action;
-    const id = parseInt(btn.dataset.id, 10);
-    const ano = yearSelect.value;
-    if (!ano) return;
-    garantirAno(ano);
-
-    const lista = dadosPorAno[ano].lancamentos;
-    const idx = lista.findIndex((l) => l.id === id);
-    if (idx === -1) return;
-
-    if (action === "editar") {
-      const atual = lista[idx];
-      const novoValorStr = prompt(
-        `Novo valor para ${atual.categoria} / ${mesesLabels[atual.mes]}:`,
-        atual.valor.toString().replace(".", ",")
-      );
-      if (novoValorStr === null) return;
-      let novoValor = parseFloat(novoValorStr.replace(",", "."));
-      if (isNaN(novoValor) || novoValor < 0) {
-        alert("Valor inválido.");
-        return;
-      }
-      lista[idx].valor = novoValor;
-      dispararSaveFirebase();
-      atualizarAnoAtual();
-    }
-
-    if (action === "excluir") {
-      const ok = confirm("Deseja realmente excluir este lançamento?");
-      if (!ok) return;
-      lista.splice(idx, 1);
-      dispararSaveFirebase();
-      atualizarAnoAtual();
-    }
-  });
+  if (anoLegenda1) anoLegenda1.textContent = ano;
 }
 
 // ===== Anos =====
+function popularSelectAnos() {
+  if (!yearSelect) return;
+
+  const anos = Object.keys(dadosPorAno).sort((a, b) => Number(a) - Number(b));
+  yearSelect.innerHTML = "";
+
+  anos.forEach(a => {
+    const o = document.createElement("option");
+    o.value = a;
+    o.textContent = a;
+    yearSelect.appendChild(o);
+  });
+
+  if (!yearSelect.value) {
+    const anoAtual = new Date().getFullYear().toString();
+    yearSelect.value = anos.includes(anoAtual) ? anoAtual : (anos[0] || anoAtual);
+  }
+}
+
 function atualizarAnoAtual() {
-  const ano = document.getElementById("yearSelect").value;
-  if (!ano) return;
+  if (!yearSelect) return;
+  const ano = yearSelect.value;
   garantirAno(ano);
-  preencherTabelaResumo(ano);
-  preencherTabelaLancamentos(ano);
+
+  preencherResumo(ano);
+  atualizarOpcoesFiltroCategoria();
+  renderTabelaLancamentos(ano);
   atualizarGraficos(ano);
 }
 
-function popularSelectAnos(selectedAno = null) {
-  const yearSelect = document.getElementById("yearSelect");
-  yearSelect.innerHTML = "";
-
-  const anos = Object.keys(dadosPorAno)
-    .map((n) => parseInt(n, 10))
-    .sort((a, b) => a - b);
-
-  anos.forEach((ano) => {
-    const opt = document.createElement("option");
-    opt.value = String(ano);
-    opt.textContent = String(ano);
-    yearSelect.appendChild(opt);
+// ===== Eventos =====
+if (tipoLancamento) {
+  tipoLancamento.addEventListener("change", () => {
+    atualizarCategoriasForm();
   });
-
-  if (!anos.length) return;
-
-  const anoSelecionado = selectedAno || String(anos[anos.length - 1]);
-  yearSelect.value = anoSelecionado;
 }
 
-function configurarBotaoAddAno() {
-  const btnAddYear = document.getElementById("btnAddYear");
-  const yearSelect = document.getElementById("yearSelect");
+if (formLancamento) {
+  formLancamento.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  btnAddYear.addEventListener("click", () => {
-    const entrada = prompt("Digite o ano que deseja criar (ex.: 2026):");
-    if (!entrada) return;
-    const novoAno = parseInt(entrada, 10);
-    if (isNaN(novoAno) || novoAno < 1900 || novoAno > 9999) {
-      alert("Ano inválido.");
-      return;
+    // Se estiver logado mas ainda não carregou do Firebase, tenta carregar antes
+    if (currentUserUid && !firebaseCarregado) {
+      await carregarDadosDoFirebase();
     }
-    garantirAno(novoAno);
-    popularSelectAnos(String(novoAno));
-    dispararSaveFirebase();
+
+    const ano = yearSelect?.value || new Date().getFullYear().toString();
+    const tipo = tipoLancamento?.value || "ganho";
+    const mes = parseInt(mesLancamento?.value ?? "0", 10);
+    const categoria = categoriaLancamento?.value || "";
+    const valor = normalizarValorNumero(valorLancamento?.value ?? "");
+    const desc = (descricaoLancamento?.value || "").trim();
+
+    if (!categoria) return alert("Selecione uma categoria.");
+    if (Number.isNaN(valor)) return alert("Valor inválido.");
+
+    adicionarLancamento(ano, tipo, mes, categoria, valor, desc);
+
+    // Limpa somente campos do form
+    formLancamento.reset();
+    if (tipoLancamento) tipoLancamento.value = "ganho";
+    atualizarCategoriasForm();
+
     atualizarAnoAtual();
   });
+}
 
-  yearSelect.addEventListener("change", atualizarAnoAtual);
+if (yearSelect) {
+  yearSelect.addEventListener("change", () => {
+    atualizarAnoAtual();
+  });
+}
+
+if (btnAddYear) {
+  btnAddYear.addEventListener("click", () => {
+    const novoAno = prompt("Digite o ano (ex.: 2026):", (new Date().getFullYear()).toString());
+    if (!novoAno) return;
+
+    const anoLimpo = novoAno.trim();
+    if (!/^\d{4}$/.test(anoLimpo)) {
+      alert("Ano inválido. Use 4 dígitos (ex.: 2026).");
+      return;
+    }
+
+    garantirAno(anoLimpo);
+    popularSelectAnos();
+    yearSelect.value = anoLimpo;
+    salvarFirebase();
+    atualizarAnoAtual();
+  });
+}
+
+if (filtroTipo) {
+  filtroTipo.addEventListener("change", () => {
+    atualizarOpcoesFiltroCategoria();
+    atualizarAnoAtual();
+  });
+}
+if (filtroMes) filtroMes.addEventListener("change", () => atualizarAnoAtual());
+if (filtroCategoria) filtroCategoria.addEventListener("change", () => atualizarAnoAtual());
+
+if (btnLimparFiltros) {
+  btnLimparFiltros.addEventListener("click", () => {
+    if (filtroTipo) filtroTipo.value = "todos";
+    if (filtroMes) filtroMes.value = "todos";
+    atualizarOpcoesFiltroCategoria();
+    atualizarAnoAtual();
+  });
 }
 
 // ===== Init =====
 document.addEventListener("DOMContentLoaded", () => {
-  const anoAtual = new Date().getFullYear();
+  const anoAtual = new Date().getFullYear().toString();
   garantirAno(anoAtual);
-  popularSelectAnos(String(anoAtual));
 
-  configurarFormLancamento();
-  configurarTabelaLancamentosEventos();
-  configurarBotaoAddAno();
-  atualizarOpcoesCategoria();
-  preencherFiltroCategoria();
-  configurarFiltrosLancamentos();
+  popularSelectAnos();
+  atualizarCategoriasForm();
+  atualizarOpcoesFiltroCategoria();
   atualizarAnoAtual();
 
-  // Integração com Firebase Auth para carregar dados do usuário
-  if (authFirebase && db) {
-    authFirebase.onAuthStateChanged((user) => {
+  if (authFirebase) {
+    authFirebase.onAuthStateChanged(user => {
       if (user) {
         currentUserUid = user.uid;
         carregarDadosDoFirebase();
-      } else {
-        currentUserUid = null;
-        // app-auth.js já cuida do redirecionamento
       }
     });
+  } else {
+    // Sem Firebase (modo local): já funciona, só não salva na nuvem
+    firebaseCarregado = true;
   }
 });
