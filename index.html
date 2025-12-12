@@ -178,7 +178,8 @@
               </div>
               <div class="form-row">
                 <label for="categoriaLancamento">Categoria</label>
-                <select id="categoriaLancamento" class="form-select"></select>
+                <input id="categoriaLancamento" type="text" list="listaCategorias" autocomplete="off" placeholder="Ex.: Aluguel, Mercado, Academia" required />
+                <datalist id="listaCategorias"></datalist>
               </div>
               <div class="form-row">
                 <label for="valorLancamento">Valor (R$)</label>
@@ -186,7 +187,7 @@
               </div>
               <div class="form-row">
                 <label for="descricaoLancamento">Descrição (opcional)</label>
-                <input id="descricaoLancamento" type="text" placeholder="Ex.: Gasolina, Mercado X, Bico de fim de semana." />
+                <input id="descricaoLancamento" type="text" placeholder="Ex.: Gasolina, Mercado X, Bico de fim de semana..." />
               </div>
               <button type="submit">+ Adicionar lançamento</button>
             </form>
