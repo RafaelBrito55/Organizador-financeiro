@@ -55,7 +55,7 @@
   <!-- CSS -->
   <link rel="stylesheet" href="login.css">
 
-  <!-- CSS EXTRA (só da topbar + modal) -->
+  <!-- CSS EXTRA (topbar + modal + contato) -->
   <style>
     /* Reserva espaço da topbar sem quebrar seu layout atual */
     body { padding-top: 64px; }
@@ -110,7 +110,7 @@
     .modal-overlay.open { display: flex; }
 
     .modal-card {
-      width: min(820px, 96vw);
+      width: min(860px, 96vw);
       max-height: 82vh;
       overflow: auto;
       background: #ffffff;
@@ -154,6 +154,66 @@
     .modal-body ul { margin: 10px 0 10px 18px; }
     .muted { color: rgba(15, 23, 42, 0.70); }
 
+    /* Form de contato (visual limpo) */
+    .contact-wrap { margin-top: 6px; }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; color: rgba(15,23,42,0.8); }
+    .field input, .field textarea {
+      border: 1px solid rgba(15,23,42,0.14);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+      background: #fff;
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field input:focus, .field textarea:focus {
+      border-color: rgba(22,163,74,0.55);
+      box-shadow: 0 0 0 4px rgba(22,163,74,0.12);
+    }
+    .grid-full { grid-column: 1 / -1; }
+
+    .contact-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-send {
+      appearance: none;
+      border: none;
+      background: #16a34a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .06s ease, filter .18s ease;
+    }
+    .btn-send:hover { filter: brightness(0.96); }
+    .btn-send:active { transform: translateY(1px); }
+    .btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status {
+      font-size: 13px;
+      color: rgba(15,23,42,0.75);
+    }
+    .status.ok { color: #15803d; }
+    .status.err { color: #b91c1c; }
+
+    @media (max-width: 680px) {
+      .contact-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 520px) {
       body { padding-top: 72px; }
       .topbar { height: 72px; }
@@ -179,9 +239,11 @@
       const bodyEl  = document.getElementById("modalBody");
       const closeBtn = document.getElementById("modalClose");
 
+      // ✅ COLE AQUI O ENDPOINT DO FORMSPREE (isso NÃO expõe seu e-mail)
+      const CONTACT_ENDPOINT = "https://formspree.io/f/xyzrapke";
+
       const PRIVACIDADE_HTML = `
         <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
-
         <p>
           Esta Política de Privacidade explica como o <strong>Meu Dinheiro na Conta</strong> coleta, usa e protege
           informações quando você cria uma conta e utiliza o painel de controle financeiro.
@@ -227,7 +289,7 @@
 
         <h4>7) Seus direitos</h4>
         <p>
-          Você pode solicitar exclusão da sua conta e dos seus dados. (Depois, no “Contato”, a gente coloca um canal prático pra isso.)
+          Você pode solicitar exclusão da sua conta e dos seus dados.
         </p>
 
         <p class="muted">
@@ -238,7 +300,6 @@
 
       const TERMOS_HTML = `
         <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
-
         <p>
           Ao usar o <strong>Meu Dinheiro na Conta</strong>, você concorda com estes Termos de Uso.
           Se não concordar, por favor, não utilize o serviço.
@@ -282,10 +343,101 @@
         </p>
 
         <p class="muted">
-          Observação: este texto é um modelo prático. Se você for colocar anúncios, coletar mais dados ou ter plano pago no futuro,
+          Observação: este texto é um modelo prático. Se você colocar anúncios, coletar mais dados ou ter plano pago no futuro,
           a gente ajusta estes termos.
         </p>
       `;
+
+      function getContatoHTML() {
+        return `
+          <p class="muted" style="margin-top:0">
+            Envie sua dúvida ou sugestão por aqui. Você não precisa saber meu e-mail — eu recebo a mensagem direto na caixa de entrada.
+          </p>
+
+          <div class="contact-wrap">
+            <form id="contactForm" autocomplete="on">
+              <!-- Honeypot anti-spam (bots preenchem isso) -->
+              <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+
+              <div class="contact-grid">
+                <div class="field">
+                  <label for="cName">Nome</label>
+                  <input id="cName" name="nome" type="text" placeholder="Seu nome" required>
+                </div>
+
+                <div class="field">
+                  <label for="cEmail">E-mail</label>
+                  <input id="cEmail" name="email" type="email" placeholder="seuemail@exemplo.com" required>
+                </div>
+
+                <div class="field">
+                  <label for="cPhone">Telefone (opcional)</label>
+                  <input id="cPhone" name="telefone" type="tel" placeholder="(xx) xxxxx-xxxx">
+                </div>
+
+                <div class="field">
+                  <label for="cCity">Cidade (opcional)</label>
+                  <input id="cCity" name="cidade" type="text" placeholder="Sua cidade">
+                </div>
+
+                <div class="field grid-full">
+                  <label for="cMsg">Mensagem</label>
+                  <textarea id="cMsg" name="mensagem" placeholder="Escreva sua mensagem..." required></textarea>
+                </div>
+              </div>
+
+              <div class="contact-actions">
+                <button type="submit" class="btn-send" id="contactSendBtn">Enviar mensagem</button>
+                <span class="status" id="contactStatus"></span>
+              </div>
+            </form>
+          </div>
+        `;
+      }
+
+      function bindContatoForm() {
+        const form = document.getElementById("contactForm");
+        if (!form) return;
+
+        const btn = document.getElementById("contactSendBtn");
+        const status = document.getElementById("contactStatus");
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          if (!CONTACT_ENDPOINT || CONTACT_ENDPOINT.includes("SEU_ID_AQUI")) {
+            status.className = "status err";
+            status.textContent = "Falta configurar o endpoint do formulário (Formspree).";
+            return;
+          }
+
+          btn.disabled = true;
+          status.className = "status";
+          status.textContent = "Enviando...";
+
+          try {
+            const res = await fetch(CONTACT_ENDPOINT, {
+              method: "POST",
+              body: new FormData(form),
+              headers: { "Accept": "application/json" }
+            });
+
+            if (res.ok) {
+              form.reset();
+              status.className = "status ok";
+              status.textContent = "Mensagem enviada! ✅";
+            } else {
+              status.className = "status err";
+              status.textContent = "Não consegui enviar agora. Tente de novo em instantes.";
+            }
+          } catch (err) {
+            status.className = "status err";
+            status.textContent = "Erro de conexão. Verifique sua internet e tente novamente.";
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
 
       function openModal(kind) {
         overlay.classList.add("open");
@@ -299,10 +451,8 @@
           bodyEl.innerHTML = TERMOS_HTML;
         } else {
           titleEl.textContent = "Contato";
-          bodyEl.innerHTML = `
-            <p><strong>Em breve.</strong></p>
-            <p class="muted">Aqui a gente vai colocar a caixinha de contato do jeito que você pediu (sem mostrar seu e-mail pessoal).</p>
-          `;
+          bodyEl.innerHTML = getContatoHTML();
+          bindContatoForm();
         }
 
         // trava o scroll do fundo
