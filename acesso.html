@@ -12,7 +12,6 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-R8B1DTKENL');
   </script>
 
@@ -27,14 +26,11 @@
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#ffffff">
 
-
   <!-- SEO básico -->
   <meta name="description"
         content="Meu Dinheiro na Conta – controle financeiro anual simples, rápido e direto. Registre ganhos, gastos, acompanhe gráficos e veja quanto realmente sobra no fim do ano. 100% gratuito.">
-
   <meta name="keywords"
         content="controle financeiro, organizar finanças, gastos mensais, planilha financeira, aplicativo financeiro, dinheiro, orçamento anual, controle de gastos, gestão financeira pessoal">
-
   <meta name="author" content="Meu Dinheiro na Conta">
 
   <!-- SEO técnica -->
@@ -53,12 +49,117 @@
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
-  <meta name="twitter:description"
-        content="Controle anual de ganhos e gastos. Visual, rápido e gratuito.">
+  <meta name="twitter:description" content="Controle anual de ganhos e gastos. Visual, rápido e gratuito.">
   <meta name="twitter:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
 
   <!-- CSS -->
   <link rel="stylesheet" href="login.css">
+
+  <!-- CSS EXTRA (só da topbar + modal) -->
+  <style>
+    /* Reserva espaço da topbar sem quebrar seu layout atual */
+    body { padding-top: 64px; }
+
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 64px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.86);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .topbar-inner {
+      max-width: 1100px;
+      height: 64px;
+      margin: 0 auto;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .topbar-btn {
+      appearance: none;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(255,255,255,0.55);
+      color: #0f172a;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.06s ease, background 0.18s ease, border-color 0.18s ease;
+      white-space: nowrap;
+    }
+    .topbar-btn:hover { background: rgba(15, 23, 42, 0.05); border-color: rgba(15, 23, 42, 0.18); }
+    .topbar-btn:active { transform: translateY(1px); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(2, 6, 23, 0.45);
+      z-index: 10000;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-card {
+      width: min(820px, 96vw);
+      max-height: 82vh;
+      overflow: auto;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 22px 70px rgba(0,0,0,0.25);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .modal-title {
+      margin: 0;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .modal-close {
+      appearance: none;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255,255,255,0.75);
+      border-radius: 12px;
+      width: 40px;
+      height: 36px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      color: #0f172a;
+    }
+    .modal-body {
+      padding: 16px 18px 18px;
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .modal-body h4 { margin: 14px 0 8px; font-size: 14px; }
+    .modal-body p { margin: 10px 0; }
+    .modal-body ul { margin: 10px 0 10px 18px; }
+    .muted { color: rgba(15, 23, 42, 0.70); }
+
+    @media (max-width: 520px) {
+      body { padding-top: 72px; }
+      .topbar { height: 72px; }
+      .topbar-inner { height: 72px; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    }
+  </style>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -69,9 +170,190 @@
 
   <!-- Lógica de login/cadastro/esqueci senha -->
   <script src="auth.js" defer></script>
+
+  <!-- Modal (Privacidade / Termos / Contato) -->
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      const overlay = document.getElementById("modalOverlay");
+      const titleEl = document.getElementById("modalTitle");
+      const bodyEl  = document.getElementById("modalBody");
+      const closeBtn = document.getElementById("modalClose");
+
+      const PRIVACIDADE_HTML = `
+        <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
+
+        <p>
+          Esta Política de Privacidade explica como o <strong>Meu Dinheiro na Conta</strong> coleta, usa e protege
+          informações quando você cria uma conta e utiliza o painel de controle financeiro.
+        </p>
+
+        <h4>1) Quais dados nós coletamos</h4>
+        <ul>
+          <li><strong>Dados de conta:</strong> seu e-mail e informações necessárias para autenticação.</li>
+          <li><strong>Dados que você lança no sistema:</strong> ganhos, gastos, categorias, valores, descrições e ano/mês.</li>
+          <li><strong>Dados técnicos:</strong> informações básicas de navegação/uso para melhorar o produto (ex.: páginas visitadas e eventos), via ferramentas de analytics.</li>
+        </ul>
+
+        <h4>2) Como usamos seus dados</h4>
+        <ul>
+          <li>Para <strong>permitir login</strong> e manter sua conta funcionando.</li>
+          <li>Para <strong>salvar e mostrar</strong> seus lançamentos e seus gráficos.</li>
+          <li>Para <strong>melhorar o site</strong>, corrigir erros e entender o que funciona melhor.</li>
+        </ul>
+
+        <h4>3) Onde seus dados ficam armazenados</h4>
+        <p>
+          Os dados do aplicativo ficam armazenados em serviços em nuvem (por exemplo, autenticação e banco de dados do projeto),
+          com regras de acesso para que cada usuário veja apenas seus próprios dados.
+        </p>
+
+        <h4>4) Compartilhamento</h4>
+        <p>
+          Nós <strong>não vendemos</strong> seus dados. Podemos usar provedores de infraestrutura/analytics para operar o site,
+          sempre com objetivo de funcionamento e melhoria do serviço.
+        </p>
+
+        <h4>5) Cookies e analytics</h4>
+        <p>
+          Podemos usar cookies/identificadores para métricas de acesso e desempenho (ex.: Google Analytics).
+          Você pode limitar cookies nas configurações do seu navegador.
+        </p>
+
+        <h4>6) Segurança</h4>
+        <p>
+          Senhas não são exibidas para administradores do site. O acesso é feito por autenticação do provedor.
+          Ainda assim, nenhum sistema é 100% imune — por isso, use uma senha forte e não reutilize senha de outros serviços.
+        </p>
+
+        <h4>7) Seus direitos</h4>
+        <p>
+          Você pode solicitar exclusão da sua conta e dos seus dados. (Depois, no “Contato”, a gente coloca um canal prático pra isso.)
+        </p>
+
+        <p class="muted">
+          Observação: este texto é um modelo prático para um site/app simples. Se você quiser algo “redondo” jurídico (LGPD),
+          vale revisar com um profissional.
+        </p>
+      `;
+
+      const TERMOS_HTML = `
+        <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
+
+        <p>
+          Ao usar o <strong>Meu Dinheiro na Conta</strong>, você concorda com estes Termos de Uso.
+          Se não concordar, por favor, não utilize o serviço.
+        </p>
+
+        <h4>1) O que é o serviço</h4>
+        <p>
+          O Meu Dinheiro na Conta é um painel online para você registrar ganhos e gastos e acompanhar um resumo do seu ano.
+          O serviço é <strong>gratuito</strong>.
+        </p>
+
+        <h4>2) Conta e responsabilidade</h4>
+        <ul>
+          <li>Você é responsável por manter a confidencialidade do seu login/senha.</li>
+          <li>Você é responsável pelas informações que registra (valores, descrições etc.).</li>
+        </ul>
+
+        <h4>3) Sem aconselhamento financeiro</h4>
+        <p>
+          O serviço é uma ferramenta de organização. Ele <strong>não</strong> substitui aconselhamento financeiro, contábil ou jurídico.
+        </p>
+
+        <h4>4) Disponibilidade</h4>
+        <p>
+          Nós buscamos manter o serviço disponível, mas ele pode passar por instabilidades, manutenção ou mudanças sem aviso prévio.
+        </p>
+
+        <h4>5) Conteúdo e dados</h4>
+        <p>
+          Seus lançamentos são seus. Você autoriza o sistema a armazenar e processar esses dados para exibir suas telas e gráficos.
+        </p>
+
+        <h4>6) Uso indevido</h4>
+        <p>
+          Podemos suspender ou limitar contas em caso de abuso, tentativa de invasão, spam, ou qualquer uso que comprometa o serviço.
+        </p>
+
+        <h4>7) Alterações</h4>
+        <p>
+          Estes termos podem ser atualizados. Quando isso acontecer, a data de atualização será ajustada aqui.
+        </p>
+
+        <p class="muted">
+          Observação: este texto é um modelo prático. Se você for colocar anúncios, coletar mais dados ou ter plano pago no futuro,
+          a gente ajusta estes termos.
+        </p>
+      `;
+
+      function openModal(kind) {
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+
+        if (kind === "privacy") {
+          titleEl.textContent = "Política de Privacidade";
+          bodyEl.innerHTML = PRIVACIDADE_HTML;
+        } else if (kind === "terms") {
+          titleEl.textContent = "Termos de Uso";
+          bodyEl.innerHTML = TERMOS_HTML;
+        } else {
+          titleEl.textContent = "Contato";
+          bodyEl.innerHTML = `
+            <p><strong>Em breve.</strong></p>
+            <p class="muted">Aqui a gente vai colocar a caixinha de contato do jeito que você pediu (sem mostrar seu e-mail pessoal).</p>
+          `;
+        }
+
+        // trava o scroll do fundo
+        document.documentElement.style.overflow = "hidden";
+      }
+
+      function closeModal() {
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.documentElement.style.overflow = "";
+      }
+
+      // Ações
+      document.querySelectorAll("[data-open-modal]").forEach(btn => {
+        btn.addEventListener("click", () => openModal(btn.getAttribute("data-open-modal")));
+      });
+
+      closeBtn.addEventListener("click", closeModal);
+
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+      });
+    });
+  </script>
 </head>
 
 <body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <button type="button" class="topbar-btn" data-open-modal="privacy">Privacidade</button>
+      <button type="button" class="topbar-btn" data-open-modal="terms">Termos</button>
+      <button type="button" class="topbar-btn" data-open-modal="contact">Contato</button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Título</h3>
+        <button type="button" class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
   <div class="page-wrapper">
     <!-- LADO ESQUERDO: EXPLICAÇÃO DO PRODUTO -->
     <section class="info-panel">
