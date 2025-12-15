@@ -547,10 +547,18 @@ let chartLine = null;
 function atualizarGraficos(ano) {
   if (!canvasBar || !canvasLine || typeof Chart === "undefined") return;
 
-  // Bar: gastos por categoria
+  // =========================
+  // Bar: gastos por categoria (TOP 7)
+  // =========================
   const gastosPorCat = calcularGastosPorCategoria(ano);
-  const labelsBar = Object.keys(gastosPorCat);
-  const dataBar = labelsBar.map(k => gastosPorCat[k] || 0);
+
+  // Ordena do maior pro menor e pega só os 7 maiores
+  const top7 = Object.entries(gastosPorCat)
+    .sort((a, b) => (b[1] || 0) - (a[1] || 0))
+    .slice(0, 7);
+
+  const labelsBar = top7.map(([cat]) => cat);
+  const dataBar = top7.map(([, valor]) => valor || 0);
 
   if (chartBar) chartBar.destroy();
   chartBar = new Chart(canvasBar, {
