@@ -2,9 +2,6 @@
 // Objetivo: cada lançamento é uma linha (não sobrescreve). Você pode ter vários itens
 // na mesma categoria e no mesmo mês, com descrições diferentes.
 
-// ===== Categorias (livres) =====
-// O usuário escolhe a categoria digitando; usamos as categorias já cadastradas como sugestão.
-
 const mesesLabels = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
   "Jul", "Ago", "Set", "Out", "Nov", "Dez"
@@ -13,6 +10,7 @@ const mesesLabels = [
 // ===== DOM =====
 const yearSelect = document.getElementById("yearSelect");
 const btnAddYear = document.getElementById("btnAddYear");
+const btnDeleteYear = document.getElementById("btnDeleteYear");
 
 const formLancamento = document.getElementById("formLancamento");
 const tipoLancamento = document.getElementById("tipoLancamento");
@@ -59,10 +57,9 @@ function salvarFirebase() {
 
   saveTimeoutId = setTimeout(async () => {
     try {
-      await db.collection("usuarios").doc(currentUserUid).set(
-        { dadosPorAno, nextId },
-        { merge: true }
-      );
+      // ⚠️ Sem merge aqui de propósito: assim, quando você EXCLUI um ano,
+      // ele some de verdade do Firestore (merge:true não remove campos antigos)
+      await db.collection("usuarios").doc(currentUserUid).set({ dadosPorAno, nextId });
     } catch (err) {
       console.error("Erro ao salvar no Firebase:", err);
     }
@@ -94,13 +91,11 @@ function migrarEstruturaAntigaSePrecisar(ano) {
   const pushItem = (tipo, mes, categoria, item) => {
     if (item == null) return;
 
-    // Se for array, adiciona todos (isso cobre "Outros gastos" antigo, por ex.)
     if (Array.isArray(item)) {
       item.forEach(it => pushItem(tipo, mes, categoria, it));
       return;
     }
 
-    // Aceita tanto {valor, descricao} quanto número puro
     let valor = null;
     let descricao = "";
 
@@ -142,7 +137,6 @@ function migrarEstruturaAntigaSePrecisar(ano) {
     const keys = Object.keys(raiz);
     if (keys.length === 0) return;
 
-    // Caso 1: raiz[mes][categoria] = item
     if (keys.every(isMonthKey)) {
       keys.forEach(mk => {
         const mes = parseInt(mk, 10);
@@ -156,7 +150,6 @@ function migrarEstruturaAntigaSePrecisar(ano) {
       return;
     }
 
-    // Caso 2: raiz[categoria][mes] = item
     keys.forEach(cat => {
       const porMes = raiz[cat];
       if (porMes && typeof porMes === "object") {
@@ -169,7 +162,6 @@ function migrarEstruturaAntigaSePrecisar(ano) {
     });
   };
 
-  // Tenta achar possíveis chaves antigas
   const ganhosAntigos = anoData.ganhos || anoData.ganho || anoData.receitas || null;
   const gastosAntigos = anoData.gastos || anoData.gasto || anoData.despesas || null;
 
@@ -178,7 +170,6 @@ function migrarEstruturaAntigaSePrecisar(ano) {
 
   anoData.lancamentos = lancamentos;
 
-  // Limpa chaves antigas (evita bagunça)
   delete anoData.ganhos;
   delete anoData.ganho;
   delete anoData.receitas;
@@ -198,10 +189,7 @@ async function carregarDadosDoFirebase() {
       if (typeof data.nextId === "number") nextId = data.nextId;
     }
 
-    // Migra anos antigos, se houver
     Object.keys(dadosPorAno).forEach(ano => migrarEstruturaAntigaSePrecisar(ano));
-
-    // Garante nextId consistente (evita colisões depois do reload)
     recalcularNextId();
 
     firebaseCarregado = true;
@@ -210,7 +198,7 @@ async function carregarDadosDoFirebase() {
     atualizarAnoAtual();
   } catch (err) {
     console.error("Erro ao carregar dados do Firebase:", err);
-    firebaseCarregado = true; // libera uso mesmo assim
+    firebaseCarregado = true;
     popularSelectAnos();
     atualizarAnoAtual();
   }
@@ -233,29 +221,23 @@ function normalizarValorNumero(v) {
   let s = v.trim();
   if (!s) return NaN;
 
-  // Remove espaços e caracteres estranhos, mantendo só números e separadores
   s = s.replace(/\s+/g, "");
   s = s.replace(/[^0-9,.\-]/g, "");
 
   const lastComma = s.lastIndexOf(",");
   const lastDot = s.lastIndexOf(".");
 
-  // Se tiver vírgula e ponto, decide qual é o separador decimal pelo ÚLTIMO que aparecer
   if (lastComma !== -1 && lastDot !== -1) {
     if (lastComma > lastDot) {
-      // Formato tipo: 1.234,56 (pt-BR)
       s = s.replace(/\./g, "");
       s = s.replace(/,/g, ".");
     } else {
-      // Formato tipo: 1,234.56 (en-US)
       s = s.replace(/,/g, "");
     }
   } else if (lastComma !== -1) {
-    // Só vírgula: 1234,56
     s = s.replace(/\./g, "");
     s = s.replace(/,/g, ".");
   } else {
-    // Só ponto (ou nada): 1234.56 (ou 1234)
     s = s.replace(/,/g, "");
   }
 
@@ -326,6 +308,14 @@ function calcularGastosPorCategoria(ano) {
   });
 
   return mapa;
+}
+
+// Helper: pega os N maiores itens de um mapa {chave: valor}
+function setMaiores(mapa, n = 7) {
+  return Object.entries(mapa || {})
+    .map(([k, v]) => [k, Number(v) || 0])
+    .sort((a, b) => (b[1] - a[1]))
+    .slice(0, n);
 }
 
 // ===== Categorias (sugestões) =====
@@ -427,7 +417,6 @@ function atualizarOpcoesFiltroCategoria(anoAtual) {
     filtroCategoria.appendChild(o);
   });
 
-  // tenta manter seleção atual
   if (atual && Array.from(filtroCategoria.options).some(o => o.value === atual)) {
     filtroCategoria.value = atual;
   } else {
@@ -547,18 +536,11 @@ let chartLine = null;
 function atualizarGraficos(ano) {
   if (!canvasBar || !canvasLine || typeof Chart === "undefined") return;
 
-  // =========================
   // Bar: gastos por categoria (TOP 7)
-  // =========================
   const gastosPorCat = calcularGastosPorCategoria(ano);
-
-  // Ordena do maior pro menor e pega só os 7 maiores
-  const top7 = Object.entries(gastosPorCat)
-    .sort((a, b) => (b[1] || 0) - (a[1] || 0))
-    .slice(0, 7);
-
+  const top7 = setMaiores(gastosPorCat, 7);
   const labelsBar = top7.map(([cat]) => cat);
-  const dataBar = top7.map(([, valor]) => valor || 0);
+  const dataBar = top7.map(([, valor]) => valor);
 
   if (chartBar) chartBar.destroy();
   chartBar = new Chart(canvasBar, {
@@ -577,6 +559,13 @@ function atualizarGraficos(ano) {
             callback: (value) => {
               try { return formatarMoeda(Number(value)); } catch { return value; }
             }
+          }
+        },
+        x: {
+          ticks: {
+            autoSkip: false,
+            maxRotation: 40,
+            minRotation: 0
           }
         }
       }
@@ -657,7 +646,6 @@ if (formLancamento) {
   formLancamento.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    // Se estiver logado mas ainda não carregou do Firebase, tenta carregar antes
     if (currentUserUid && !firebaseCarregado) {
       await carregarDadosDoFirebase();
     }
@@ -675,7 +663,6 @@ if (formLancamento) {
     adicionarLancamento(ano, tipo, mes, categoria, valor, desc);
     atualizarAnoAtual();
 
-    // limpa valor/descrição (mantém categoria pra facilitar lançar vários na mesma)
     if (valorLancamento) valorLancamento.value = "";
     if (descricaoLancamento) descricaoLancamento.value = "";
   });
@@ -702,10 +689,37 @@ if (btnAddYear) {
   });
 }
 
-if (filtroTipo) {
-  filtroTipo.addEventListener("change", () => {
+if (btnDeleteYear) {
+  btnDeleteYear.addEventListener("click", () => {
+    if (!yearSelect) return;
+    const ano = yearSelect.value;
+    if (!ano) return;
+
+    const ok = confirm(
+      `Excluir o ano ${ano}?\n\nIsso vai apagar TODOS os lançamentos desse ano.\nEssa ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+
+    delete dadosPorAno[ano];
+
+    let anosRestantes = Object.keys(dadosPorAno).sort((a, b) => Number(a) - Number(b));
+    if (anosRestantes.length === 0) {
+      const anoAtual = new Date().getFullYear().toString();
+      garantirAno(anoAtual);
+      anosRestantes = [anoAtual];
+    }
+
+    recalcularNextId();
+    popularSelectAnos();
+    yearSelect.value = anosRestantes[anosRestantes.length - 1]; // vai para o ano mais recente
     atualizarAnoAtual();
+
+    salvarFirebase();
   });
+}
+
+if (filtroTipo) {
+  filtroTipo.addEventListener("change", () => atualizarAnoAtual());
 }
 if (filtroMes) filtroMes.addEventListener("change", () => atualizarAnoAtual());
 if (filtroCategoria) filtroCategoria.addEventListener("change", () => atualizarAnoAtual());
@@ -735,7 +749,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   } else {
-    // Sem Firebase (modo local): já funciona, só não salva na nuvem
     firebaseCarregado = true;
   }
 });
