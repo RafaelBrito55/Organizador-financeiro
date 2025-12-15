@@ -113,6 +113,7 @@
       width: min(860px, 96vw);
       max-height: 82vh;
       overflow: auto;
+      overflow-x: hidden; /* ✅ evita scroll lateral */
       background: #ffffff;
       border-radius: 18px;
       box-shadow: 0 22px 70px rgba(0,0,0,0.25);
@@ -148,21 +149,28 @@
       color: #0f172a;
       font-size: 14px;
       line-height: 1.55;
+      overflow-x: hidden; /* ✅ evita vazamento */
     }
     .modal-body h4 { margin: 14px 0 8px; font-size: 14px; }
     .modal-body p { margin: 10px 0; }
     .modal-body ul { margin: 10px 0 10px 18px; }
     .muted { color: rgba(15, 23, 42, 0.70); }
 
-    /* Form de contato (visual limpo) */
+    /* Form de contato */
     .contact-wrap { margin-top: 6px; }
     .contact-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      column-gap: 18px;   /* ✅ mais espaço entre colunas */
+      row-gap: 12px;
     }
+
+    /* ✅ chave para NÃO sobrepor / NÃO vazar no grid */
+    .contact-grid > .field { min-width: 0; }
+
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field label { font-size: 13px; color: rgba(15,23,42,0.8); }
+
     .field input, .field textarea {
       border: 1px solid rgba(15,23,42,0.14);
       border-radius: 12px;
@@ -172,7 +180,12 @@
       outline: none;
       transition: border-color .15s ease, box-shadow .15s ease;
       background: #fff;
+
+      width: 100%;        /* ✅ */
+      max-width: 100%;    /* ✅ */
+      box-sizing: border-box; /* ✅ */
     }
+
     .field textarea { min-height: 120px; resize: vertical; }
     .field input:focus, .field textarea:focus {
       border-color: rgba(22,163,74,0.55);
@@ -207,12 +220,14 @@
     .status {
       font-size: 13px;
       color: rgba(15,23,42,0.75);
+      margin-left: auto;
     }
     .status.ok { color: #15803d; }
     .status.err { color: #b91c1c; }
 
     @media (max-width: 680px) {
       .contact-grid { grid-template-columns: 1fr; }
+      .status { margin-left: 0; }
     }
     @media (max-width: 520px) {
       body { padding-top: 72px; }
@@ -239,7 +254,7 @@
       const bodyEl  = document.getElementById("modalBody");
       const closeBtn = document.getElementById("modalClose");
 
-      // ✅ COLE AQUI O ENDPOINT DO FORMSPREE (isso NÃO expõe seu e-mail)
+      // ✅ Endpoint do seu Formspree
       const CONTACT_ENDPOINT = "https://formspree.io/f/xyzrapke";
 
       const PRIVACIDADE_HTML = `
@@ -356,7 +371,7 @@
 
           <div class="contact-wrap">
             <form id="contactForm" autocomplete="on">
-              <!-- Honeypot anti-spam (bots preenchem isso) -->
+              <!-- Honeypot anti-spam -->
               <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
 
               <div class="contact-grid">
@@ -405,12 +420,6 @@
         form.addEventListener("submit", async (e) => {
           e.preventDefault();
 
-          if (!CONTACT_ENDPOINT || CONTACT_ENDPOINT.includes("SEU_ID_AQUI")) {
-            status.className = "status err";
-            status.textContent = "Falta configurar o endpoint do formulário (Formspree).";
-            return;
-          }
-
           btn.disabled = true;
           status.className = "status";
           status.textContent = "Enviando...";
@@ -455,7 +464,6 @@
           bindContatoForm();
         }
 
-        // trava o scroll do fundo
         document.documentElement.style.overflow = "hidden";
       }
 
@@ -465,7 +473,6 @@
         document.documentElement.style.overflow = "";
       }
 
-      // Ações
       document.querySelectorAll("[data-open-modal]").forEach(btn => {
         btn.addEventListener("click", () => openModal(btn.getAttribute("data-open-modal")));
       });
