@@ -60,7 +60,7 @@
   <!-- CSS -->
   <link rel="stylesheet" href="login.css">
 
-  <!-- CSS EXTRA (topbar + modal + contato) -->
+  <!-- CSS EXTRA (topbar + modal + contato + blocos extras) -->
   <style>
     /* Reserva espaço da topbar sem quebrar seu layout atual */
     body { padding-top: 64px; }
@@ -166,11 +166,9 @@
     .contact-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      column-gap: 18px;   /* ✅ mais espaço entre colunas */
+      column-gap: 18px;
       row-gap: 12px;
     }
-
-    /* ✅ chave para NÃO sobrepor / NÃO vazar no grid */
     .contact-grid > .field { min-width: 0; }
 
     .field { display: flex; flex-direction: column; gap: 6px; }
@@ -186,9 +184,9 @@
       transition: border-color .15s ease, box-shadow .15s ease;
       background: #fff;
 
-      width: 100%;        /* ✅ */
-      max-width: 100%;    /* ✅ */
-      box-sizing: border-box; /* ✅ */
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .field textarea { min-height: 120px; resize: vertical; }
@@ -229,6 +227,76 @@
     }
     .status.ok { color: #15803d; }
     .status.err { color: #b91c1c; }
+
+    /* ✅ Blocos extras (conteúdo público) – sem mudar layout */
+    .info-extra {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .info-box {
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(15,23,42,0.10);
+      border-radius: 18px;
+      padding: 14px 14px;
+    }
+    .info-box h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    .info-box p {
+      margin: 0;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: rgba(15,23,42,0.82);
+    }
+    .info-box ul, .info-box ol {
+      margin: 8px 0 0 18px;
+      color: rgba(15,23,42,0.82);
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(255,255,255,0.55);
+      font-size: 12.8px;
+      color: rgba(15,23,42,0.85);
+    }
+
+    details.faq-item {
+      border: 1px solid rgba(15,23,42,0.10);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.68);
+    }
+    details.faq-item + details.faq-item { margin-top: 10px; }
+    details.faq-item summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #0f172a;
+      list-style: none;
+      font-size: 13.5px;
+    }
+    details.faq-item summary::-webkit-details-marker { display: none; }
+    details.faq-item p { margin-top: 8px; }
+
+    .disclosure {
+      font-size: 12.5px;
+      color: rgba(15,23,42,0.70);
+      margin-top: 10px;
+    }
 
     @media (max-width: 680px) {
       .contact-grid { grid-template-columns: 1fr; }
@@ -540,6 +608,60 @@
           100% gratuito. Sem planos pagos, sem pegadinha.
           É só criar sua conta e começar a usar.
         </p>
+
+        <!-- ✅ Conteúdo extra (para confiança/AdSense), sem mexer no layout -->
+        <div class="info-extra">
+          <div class="info-box">
+            <h3>Como funciona (bem rápido)</h3>
+            <ol>
+              <li>Crie sua conta com e-mail e senha.</li>
+              <li>Cadastre seus lançamentos (ganhos e gastos) por mês.</li>
+              <li>Veja o resumo do ano e os gráficos automaticamente.</li>
+            </ol>
+
+            <div class="pill-row">
+              <span class="pill">🔒 Cada usuário vê só seus dados</span>
+              <span class="pill">☁️ Acesso de qualquer lugar</span>
+              <span class="pill">✅ Sem planilhas</span>
+            </div>
+
+            <p class="disclosure">
+              Este site pode exibir anúncios para manter o projeto gratuito (Google AdSense).
+            </p>
+          </div>
+
+          <div class="info-box">
+            <h3>FAQ (perguntas comuns)</h3>
+
+            <details class="faq-item">
+              <summary>Preciso pagar alguma coisa?</summary>
+              <p>Não. O Meu Dinheiro na Conta é gratuito. A ideia é simplificar seu controle financeiro sem planilhas.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Meus dados ficam públicos?</summary>
+              <p>Não. Seus lançamentos ficam vinculados à sua conta e só você acessa depois do login.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Isso é consultoria financeira?</summary>
+              <p>Não. É uma ferramenta de organização. Ela não substitui aconselhamento financeiro/contábil/jurídico.</p>
+            </details>
+
+            <details class="faq-item">
+              <summary>Como eu falo com você?</summary>
+              <p>Clique em <strong>Contato</strong> no topo e envie uma mensagem pelo formulário.</p>
+            </details>
+          </div>
+
+          <div class="info-box">
+            <h3>Transparência</h3>
+            <p>
+              A gente coleta o mínimo necessário para o sistema funcionar (login + seus lançamentos),
+              e usa métricas básicas de acesso para melhorar o site. Detalhes completos em <strong>Privacidade</strong> e <strong>Termos</strong>.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
 
