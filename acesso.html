@@ -3,157 +3,598 @@
 <head>
   <meta charset="UTF-8">
 
+  <!-- Verificação Google Search Console -->
+  <meta name="google-site-verification" content="q3XGL7YVuF28JussiAvaMBPgQEiCa30yLHMddAw-fKs" />
+
+  <!-- Google tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R8B1DTKENL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-R8B1DTKENL');
+  </script>
+
   <title>Meu Dinheiro na Conta – Acesso</title>
+
+  <!-- Favicons -->
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="logo-meu-dinheiro-na-conta.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#ffffff">
 
   <!-- SEO básico -->
   <meta name="description"
         content="Meu Dinheiro na Conta – controle financeiro anual simples, rápido e direto. Registre ganhos, gastos, acompanhe gráficos e veja quanto realmente sobra no fim do ano. 100% gratuito.">
-
   <meta name="keywords"
-        content="controle financeiro, organizar finanças, gastos, ganhos, orçamento anual, finanças pessoais, planilha financeira, controle de gastos, gráfico de gastos">
+        content="controle financeiro, organizar finanças, gastos mensais, planilha financeira, aplicativo financeiro, dinheiro, orçamento anual, controle de gastos, gestão financeira pessoal">
+  <meta name="author" content="Meu Dinheiro na Conta">
 
+  <!-- SEO técnica -->
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- AdSense (verificação/ads automáticos) -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6124393666586707"
-     crossorigin="anonymous"></script>
+  <!-- Open Graph (compartilhamento) -->
+  <meta property="og:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
+  <meta property="og:description"
+        content="Controle financeiro anual simples, visual e rápido. Adicione ganhos, gastos, veja gráficos e descubra seu saldo real. Gratuito.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://meudinheironaconta.com.br/">
+  <meta property="og:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
 
-  <link rel="stylesheet" href="style.css">
-</head>
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
+  <meta name="twitter:description" content="Controle anual de ganhos e gastos. Visual, rápido e gratuito.">
+  <meta name="twitter:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
 
-<body>
+  <!-- CSS -->
+  <link rel="stylesheet" href="login.css">
 
-  <div class="auth-shell">
-    <header class="auth-header">
-      <div class="brand">
-        <div class="brand-logo">⬆</div>
-        <div class="brand-text">
-          <div class="brand-title">Meu Dinheiro</div>
-          <div class="brand-sub">na Conta</div>
-        </div>
-      </div>
-      <a class="auth-back" href="index.html">Voltar</a>
-    </header>
+  <!-- CSS EXTRA (topbar + modal + contato) -->
+  <style>
+    /* Reserva espaço da topbar sem quebrar seu layout atual */
+    body { padding-top: 64px; }
 
-    <main class="auth-main">
-      <div class="auth-card">
-        <h1>Acesso</h1>
-        <p class="muted">Entre com sua conta ou crie uma nova. É grátis.</p>
+    .topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 64px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.86);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .topbar-inner {
+      max-width: 1100px;
+      height: 64px;
+      margin: 0 auto;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .topbar-btn {
+      appearance: none;
+      border: 1px solid rgba(15, 23, 42, 0.10);
+      background: rgba(255,255,255,0.55);
+      color: #0f172a;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.06s ease, background 0.18s ease, border-color 0.18s ease;
+      white-space: nowrap;
+    }
+    .topbar-btn:hover { background: rgba(15, 23, 42, 0.05); border-color: rgba(15, 23, 42, 0.18); }
+    .topbar-btn:active { transform: translateY(1px); }
 
-        <div class="tabs">
-          <button type="button" class="tab-btn active" id="tabLogin">Entrar</button>
-          <button type="button" class="tab-btn" id="tabSignup">Criar conta</button>
-        </div>
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(2, 6, 23, 0.45);
+      z-index: 10000;
+    }
+    .modal-overlay.open { display: flex; }
 
-        <div class="tab-content" id="loginBox">
-          <label>E-mail</label>
-          <input type="email" id="loginEmail" placeholder="seuemail@exemplo.com">
+    .modal-card {
+      width: min(860px, 96vw);
+      max-height: 82vh;
+      overflow: auto;
+      overflow-x: hidden; /* ✅ evita scroll lateral */
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 22px 70px rgba(0,0,0,0.25);
+      border: 1px solid rgba(15, 23, 42, 0.10);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .modal-title {
+      margin: 0;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .modal-close {
+      appearance: none;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: rgba(255,255,255,0.75);
+      border-radius: 12px;
+      width: 40px;
+      height: 36px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      color: #0f172a;
+    }
+    .modal-body {
+      padding: 16px 18px 18px;
+      color: #0f172a;
+      font-size: 14px;
+      line-height: 1.55;
+      overflow-x: hidden; /* ✅ evita vazamento */
+    }
+    .modal-body h4 { margin: 14px 0 8px; font-size: 14px; }
+    .modal-body p { margin: 10px 0; }
+    .modal-body ul { margin: 10px 0 10px 18px; }
+    .muted { color: rgba(15, 23, 42, 0.70); }
 
-          <label>Senha</label>
-          <input type="password" id="loginPassword" placeholder="********">
+    /* Form de contato */
+    .contact-wrap { margin-top: 6px; }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 18px;   /* ✅ mais espaço entre colunas */
+      row-gap: 12px;
+    }
 
-          <button type="button" id="btnLogin" class="btn-primary">Entrar</button>
+    /* ✅ chave para NÃO sobrepor / NÃO vazar no grid */
+    .contact-grid > .field { min-width: 0; }
 
-          <button type="button" id="btnReset" class="btn-link">Esqueci minha senha</button>
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; color: rgba(15,23,42,0.8); }
 
-          <p id="loginStatus" class="muted status"></p>
-        </div>
+    .field input, .field textarea {
+      border: 1px solid rgba(15,23,42,0.14);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s ease, box-shadow .15s ease;
+      background: #fff;
 
-        <div class="tab-content hidden" id="signupBox">
-          <label>E-mail</label>
-          <input type="email" id="signupEmail" placeholder="seuemail@exemplo.com">
+      width: 100%;        /* ✅ */
+      max-width: 100%;    /* ✅ */
+      box-sizing: border-box; /* ✅ */
+    }
 
-          <label>Senha</label>
-          <input type="password" id="signupPassword" placeholder="Crie uma senha">
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field input:focus, .field textarea:focus {
+      border-color: rgba(22,163,74,0.55);
+      box-shadow: 0 0 0 4px rgba(22,163,74,0.12);
+    }
+    .grid-full { grid-column: 1 / -1; }
 
-          <button type="button" id="btnSignup" class="btn-primary">Criar conta</button>
+    .contact-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-send {
+      appearance: none;
+      border: none;
+      background: #16a34a;
+      color: #fff;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .06s ease, filter .18s ease;
+    }
+    .btn-send:hover { filter: brightness(0.96); }
+    .btn-send:active { transform: translateY(1px); }
+    .btn-send:disabled { opacity: 0.6; cursor: not-allowed; }
 
-          <p id="signupStatus" class="muted status"></p>
-        </div>
-      </div>
-    </main>
+    .status {
+      font-size: 13px;
+      color: rgba(15,23,42,0.75);
+      margin-left: auto;
+    }
+    .status.ok { color: #15803d; }
+    .status.err { color: #b91c1c; }
 
-    <footer class="auth-footer">
-      <span>© Meu Dinheiro na Conta • 100% grátis</span>
-    </footer>
-  </div>
+    @media (max-width: 680px) {
+      .contact-grid { grid-template-columns: 1fr; }
+      .status { margin-left: 0; }
+    }
+    @media (max-width: 520px) {
+      body { padding-top: 72px; }
+      .topbar { height: 72px; }
+      .topbar-inner { height: 72px; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    }
+  </style>
 
-  <!-- Firebase + Auth -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 
-  <!-- Config Firebase (seu arquivo) -->
+  <!-- Config do Firebase -->
   <script src="firebase-config.js"></script>
 
-  <script>
-    // Tabs
-    const tabLogin = document.getElementById("tabLogin");
-    const tabSignup = document.getElementById("tabSignup");
-    const loginBox = document.getElementById("loginBox");
-    const signupBox = document.getElementById("signupBox");
+  <!-- Lógica de login/cadastro/esqueci senha -->
+  <script src="auth.js" defer></script>
 
-    tabLogin.addEventListener("click", () => {
-      tabLogin.classList.add("active");
-      tabSignup.classList.remove("active");
-      loginBox.classList.remove("hidden");
-      signupBox.classList.add("hidden");
-    });
+  <!-- Modal (Privacidade / Termos / Contato) -->
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      const overlay = document.getElementById("modalOverlay");
+      const titleEl = document.getElementById("modalTitle");
+      const bodyEl  = document.getElementById("modalBody");
+      const closeBtn = document.getElementById("modalClose");
 
-    tabSignup.addEventListener("click", () => {
-      tabSignup.classList.add("active");
-      tabLogin.classList.remove("active");
-      signupBox.classList.remove("hidden");
-      loginBox.classList.add("hidden");
-    });
+      // ✅ Endpoint do seu Formspree
+      const CONTACT_ENDPOINT = "https://formspree.io/f/xyzrapke";
 
-    // Auth
-    const auth = firebase.auth();
+      const PRIVACIDADE_HTML = `
+        <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
+        <p>
+          Esta Política de Privacidade explica como o <strong>Meu Dinheiro na Conta</strong> coleta, usa e protege
+          informações quando você cria uma conta e utiliza o painel de controle financeiro.
+        </p>
 
-    const loginEmail = document.getElementById("loginEmail");
-    const loginPassword = document.getElementById("loginPassword");
-    const loginStatus = document.getElementById("loginStatus");
+        <h4>1) Quais dados nós coletamos</h4>
+        <ul>
+          <li><strong>Dados de conta:</strong> seu e-mail e informações necessárias para autenticação.</li>
+          <li><strong>Dados que você lança no sistema:</strong> ganhos, gastos, categorias, valores, descrições e ano/mês.</li>
+          <li><strong>Dados técnicos:</strong> informações básicas de navegação/uso para melhorar o produto (ex.: páginas visitadas e eventos), via ferramentas de analytics.</li>
+        </ul>
 
-    const signupEmail = document.getElementById("signupEmail");
-    const signupPassword = document.getElementById("signupPassword");
-    const signupStatus = document.getElementById("signupStatus");
+        <h4>2) Como usamos seus dados</h4>
+        <ul>
+          <li>Para <strong>permitir login</strong> e manter sua conta funcionando.</li>
+          <li>Para <strong>salvar e mostrar</strong> seus lançamentos e seus gráficos.</li>
+          <li>Para <strong>melhorar o site</strong>, corrigir erros e entender o que funciona melhor.</li>
+        </ul>
 
-    document.getElementById("btnLogin").addEventListener("click", async () => {
-      loginStatus.textContent = "Entrando...";
-      try {
-        await auth.signInWithEmailAndPassword(loginEmail.value.trim(), loginPassword.value);
-        loginStatus.textContent = "OK! Redirecionando...";
-        window.location.href = "index.html";
-      } catch (err) {
-        loginStatus.textContent = "Erro: " + (err?.message || err);
+        <h4>3) Onde seus dados ficam armazenados</h4>
+        <p>
+          Os dados do aplicativo ficam armazenados em serviços em nuvem (por exemplo, autenticação e banco de dados do projeto),
+          com regras de acesso para que cada usuário veja apenas seus próprios dados.
+        </p>
+
+        <h4>4) Compartilhamento</h4>
+        <p>
+          Nós <strong>não vendemos</strong> seus dados. Podemos usar provedores de infraestrutura/analytics para operar o site,
+          sempre com objetivo de funcionamento e melhoria do serviço.
+        </p>
+
+        <h4>5) Cookies e analytics</h4>
+        <p>
+          Podemos usar cookies/identificadores para métricas de acesso e desempenho (ex.: Google Analytics).
+          Você pode limitar cookies nas configurações do seu navegador.
+        </p>
+
+        <h4>6) Segurança</h4>
+        <p>
+          Senhas não são exibidas para administradores do site. O acesso é feito por autenticação do provedor.
+          Ainda assim, nenhum sistema é 100% imune — por isso, use uma senha forte e não reutilize senha de outros serviços.
+        </p>
+
+        <h4>7) Seus direitos</h4>
+        <p>
+          Você pode solicitar exclusão da sua conta e dos seus dados.
+        </p>
+
+        <p class="muted">
+          Observação: este texto é um modelo prático para um site/app simples. Se você quiser algo “redondo” jurídico (LGPD),
+          vale revisar com um profissional.
+        </p>
+      `;
+
+      const TERMOS_HTML = `
+        <p><strong>Última atualização:</strong> ${new Date().toLocaleDateString("pt-BR")}</p>
+        <p>
+          Ao usar o <strong>Meu Dinheiro na Conta</strong>, você concorda com estes Termos de Uso.
+          Se não concordar, por favor, não utilize o serviço.
+        </p>
+
+        <h4>1) O que é o serviço</h4>
+        <p>
+          O Meu Dinheiro na Conta é um painel online para você registrar ganhos e gastos e acompanhar um resumo do seu ano.
+          O serviço é <strong>gratuito</strong>.
+        </p>
+
+        <h4>2) Conta e responsabilidade</h4>
+        <ul>
+          <li>Você é responsável por manter a confidencialidade do seu login/senha.</li>
+          <li>Você é responsável pelas informações que registra (valores, descrições etc.).</li>
+        </ul>
+
+        <h4>3) Sem aconselhamento financeiro</h4>
+        <p>
+          O serviço é uma ferramenta de organização. Ele <strong>não</strong> substitui aconselhamento financeiro, contábil ou jurídico.
+        </p>
+
+        <h4>4) Disponibilidade</h4>
+        <p>
+          Nós buscamos manter o serviço disponível, mas ele pode passar por instabilidades, manutenção ou mudanças sem aviso prévio.
+        </p>
+
+        <h4>5) Conteúdo e dados</h4>
+        <p>
+          Seus lançamentos são seus. Você autoriza o sistema a armazenar e processar esses dados para exibir suas telas e gráficos.
+        </p>
+
+        <h4>6) Uso indevido</h4>
+        <p>
+          Podemos suspender ou limitar contas em caso de abuso, tentativa de invasão, spam, ou qualquer uso que comprometa o serviço.
+        </p>
+
+        <h4>7) Alterações</h4>
+        <p>
+          Estes termos podem ser atualizados. Quando isso acontecer, a data de atualização será ajustada aqui.
+        </p>
+
+        <p class="muted">
+          Observação: este texto é um modelo prático. Se você colocar anúncios, coletar mais dados ou ter plano pago no futuro,
+          a gente ajusta estes termos.
+        </p>
+      `;
+
+      function getContatoHTML() {
+        return `
+          <p class="muted" style="margin-top:0">
+            Envie sua dúvida ou sugestão por aqui. Você não precisa saber meu e-mail — eu recebo a mensagem direto na caixa de entrada.
+          </p>
+
+          <div class="contact-wrap">
+            <form id="contactForm" autocomplete="on">
+              <!-- Honeypot anti-spam -->
+              <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+
+              <div class="contact-grid">
+                <div class="field">
+                  <label for="cName">Nome</label>
+                  <input id="cName" name="nome" type="text" placeholder="Seu nome" required>
+                </div>
+
+                <div class="field">
+                  <label for="cEmail">E-mail</label>
+                  <input id="cEmail" name="email" type="email" placeholder="seuemail@exemplo.com" required>
+                </div>
+
+                <div class="field">
+                  <label for="cPhone">Telefone (opcional)</label>
+                  <input id="cPhone" name="telefone" type="tel" placeholder="(xx) xxxxx-xxxx">
+                </div>
+
+                <div class="field">
+                  <label for="cCity">Cidade (opcional)</label>
+                  <input id="cCity" name="cidade" type="text" placeholder="Sua cidade">
+                </div>
+
+                <div class="field grid-full">
+                  <label for="cMsg">Mensagem</label>
+                  <textarea id="cMsg" name="mensagem" placeholder="Escreva sua mensagem..." required></textarea>
+                </div>
+              </div>
+
+              <div class="contact-actions">
+                <button type="submit" class="btn-send" id="contactSendBtn">Enviar mensagem</button>
+                <span class="status" id="contactStatus"></span>
+              </div>
+            </form>
+          </div>
+        `;
       }
-    });
 
-    document.getElementById("btnSignup").addEventListener("click", async () => {
-      signupStatus.textContent = "Criando conta...";
-      try {
-        await auth.createUserWithEmailAndPassword(signupEmail.value.trim(), signupPassword.value);
-        signupStatus.textContent = "Conta criada! Redirecionando...";
-        window.location.href = "index.html";
-      } catch (err) {
-        signupStatus.textContent = "Erro: " + (err?.message || err);
-      }
-    });
+      function bindContatoForm() {
+        const form = document.getElementById("contactForm");
+        if (!form) return;
 
-    document.getElementById("btnReset").addEventListener("click", async () => {
-      const email = loginEmail.value.trim();
-      if (!email) {
-        loginStatus.textContent = "Digite seu e-mail para recuperar a senha.";
-        return;
+        const btn = document.getElementById("contactSendBtn");
+        const status = document.getElementById("contactStatus");
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          btn.disabled = true;
+          status.className = "status";
+          status.textContent = "Enviando...";
+
+          try {
+            const res = await fetch(CONTACT_ENDPOINT, {
+              method: "POST",
+              body: new FormData(form),
+              headers: { "Accept": "application/json" }
+            });
+
+            if (res.ok) {
+              form.reset();
+              status.className = "status ok";
+              status.textContent = "Mensagem enviada! ✅";
+            } else {
+              status.className = "status err";
+              status.textContent = "Não consegui enviar agora. Tente de novo em instantes.";
+            }
+          } catch (err) {
+            status.className = "status err";
+            status.textContent = "Erro de conexão. Verifique sua internet e tente novamente.";
+          } finally {
+            btn.disabled = false;
+          }
+        });
       }
-      loginStatus.textContent = "Enviando link de recuperação...";
-      try {
-        await auth.sendPasswordResetEmail(email);
-        loginStatus.textContent = "Enviado! Verifique seu e-mail.";
-      } catch (err) {
-        loginStatus.textContent = "Erro: " + (err?.message || err);
+
+      function openModal(kind) {
+        overlay.classList.add("open");
+        overlay.setAttribute("aria-hidden", "false");
+
+        if (kind === "privacy") {
+          titleEl.textContent = "Política de Privacidade";
+          bodyEl.innerHTML = PRIVACIDADE_HTML;
+        } else if (kind === "terms") {
+          titleEl.textContent = "Termos de Uso";
+          bodyEl.innerHTML = TERMOS_HTML;
+        } else {
+          titleEl.textContent = "Contato";
+          bodyEl.innerHTML = getContatoHTML();
+          bindContatoForm();
+        }
+
+        document.documentElement.style.overflow = "hidden";
       }
+
+      function closeModal() {
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.documentElement.style.overflow = "";
+      }
+
+      document.querySelectorAll("[data-open-modal]").forEach(btn => {
+        btn.addEventListener("click", () => openModal(btn.getAttribute("data-open-modal")));
+      });
+
+      closeBtn.addEventListener("click", closeModal);
+
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay.classList.contains("open")) closeModal();
+      });
     });
   </script>
+</head>
 
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <button type="button" class="topbar-btn" data-open-modal="privacy">Privacidade</button>
+      <button type="button" class="topbar-btn" data-open-modal="terms">Termos</button>
+      <button type="button" class="topbar-btn" data-open-modal="contact">Contato</button>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Título</h3>
+        <button type="button" class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="page-wrapper">
+    <!-- LADO ESQUERDO: EXPLICAÇÃO DO PRODUTO -->
+    <section class="info-panel">
+      <div class="info-content">
+        <img src="logo-meu-dinheiro-na-conta.svg"
+             alt="Meu Dinheiro na Conta"
+             class="logo-app">
+
+        <h1 class="info-title">Meu Dinheiro na Conta</h1>
+        <p class="info-subtitle">
+          Um controle financeiro anual pensado para gente real: simples de usar, visual e direto ao ponto.
+        </p>
+
+        <ul class="info-list">
+          <li>Organize seus <strong>ganhos e gastos</strong> mês a mês.</li>
+          <li>Veja <strong>gráficos</strong> com o resumo do ano em segundos.</li>
+          <li>Acompanhe seus <strong>salários, despesas fixas e variáveis</strong> sem planilhas.</li>
+          <li>Seus dados ficam <strong>salvos na nuvem</strong>, acessíveis de qualquer lugar.</li>
+        </ul>
+
+        <p class="info-highlight">
+          100% gratuito. Sem planos pagos, sem pegadinha.
+          É só criar sua conta e começar a usar.
+        </p>
+      </div>
+    </section>
+
+    <!-- LADO DIREITO: LOGIN / CADASTRO -->
+    <section class="auth-panel">
+      <div class="card">
+        <h2>Entre na sua conta</h2>
+        <p class="subtitle">Use seu email e senha para acessar seu painel financeiro.</p>
+
+        <div class="tabs">
+          <button id="btnLoginTab" class="active">Entrar</button>
+          <button id="btnSignupTab">Criar conta</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" class="form active">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required>
+
+          <label>Senha</label>
+          <input type="password" id="loginPassword" required>
+
+          <button type="submit" class="btn-green">Entrar</button>
+
+          <p class="forgot-link" id="btnForgotPassword">Esqueci minha senha</p>
+
+          <p class="msg-error" id="loginError"></p>
+        </form>
+
+        <!-- SIGNUP FORM -->
+        <form id="signupForm" class="form">
+          <label>Email</label>
+          <input type="email" id="signupEmail" required>
+
+          <label>Senha (mín. 6 caracteres)</label>
+          <input type="password" id="signupPassword" required>
+
+          <button type="submit" class="btn-green">Criar conta</button>
+
+          <p class="msg-error" id="signupError"></p>
+        </form>
+
+        <!-- ESQUECI A SENHA -->
+        <form id="forgotForm" class="form">
+          <p class="subtitle">
+            Digite o email cadastrado que nós vamos enviar um link para você redefinir sua senha.
+          </p>
+
+          <label>Email</label>
+          <input type="email" id="forgotEmail" required>
+
+          <button type="submit" class="btn-green">Enviar link de recuperação</button>
+
+          <p class="msg-error" id="forgotError"></p>
+          <p class="msg-success" id="forgotSuccess"></p>
+
+          <p class="forgot-link" id="btnBackToLogin">Voltar para o login</p>
+        </form>
+      </div>
+    </section>
+  </div>
 </body>
 </html>
