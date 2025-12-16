@@ -1,6 +1,7 @@
 // app.js — Meu Dinheiro na Conta
-// Objetivo: cada lançamento é uma linha (não sobrescreve). Você pode ter vários itens
-// na mesma categoria e no mesmo mês, com descrições diferentes.
+// - Lançamentos como linhas (não sobrescreve)
+// - Gráfico de categorias: TOP 7 (ano inteiro ou por mês)
+// - Excluir ano (com confirmação)
 
 const mesesLabels = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
@@ -29,6 +30,7 @@ const btnLimparFiltros = document.getElementById("btnLimparFiltros");
 const tabelaLancamentos = document.getElementById("tabelaLancamentos");
 
 const anoLegenda1 = document.getElementById("anoLegenda1");
+const chartPeriodoSelect = document.getElementById("chartPeriodoSelect");
 
 const canvasBar = document.getElementById("barGastosCategorias");
 const canvasLine = document.getElementById("lineGanhosGastos");
@@ -57,8 +59,8 @@ function salvarFirebase() {
 
   saveTimeoutId = setTimeout(async () => {
     try {
-      // ⚠️ Sem merge aqui de propósito: assim, quando você EXCLUI um ano,
-      // ele some de verdade do Firestore (merge:true não remove campos antigos)
+      // ⚠️ Sem merge de propósito:
+      // Assim, quando você apagar um ano do objeto, ele some de verdade do Firestore.
       await db.collection("usuarios").doc(currentUserUid).set({ dadosPorAno, nextId });
     } catch (err) {
       console.error("Erro ao salvar no Firebase:", err);
@@ -76,8 +78,8 @@ function recalcularNextId() {
   nextId = Math.max(1, maxId + 1);
 }
 
-// Migração defensiva: se existir uma estrutura antiga (ganhos/gastos por mês/categoria),
-// converte tudo para o formato "lancamentos: []".
+// Migração defensiva: se existir estrutura antiga (ganhos/gastos por mês/categoria),
+// converte para "lancamentos: []".
 function migrarEstruturaAntigaSePrecisar(ano) {
   const anoData = dadosPorAno[ano];
   if (!anoData || Array.isArray(anoData.lancamentos)) {
@@ -111,7 +113,6 @@ function migrarEstruturaAntigaSePrecisar(ano) {
         const v = parseFloat(vRaw.replace(",", "."));
         if (!Number.isNaN(v)) valor = v;
       }
-
       descricao = (item.descricao ?? item.desc ?? item.nome ?? item.label ?? "").toString().trim();
     }
 
@@ -119,14 +120,7 @@ function migrarEstruturaAntigaSePrecisar(ano) {
     if (!categoria || typeof categoria !== "string") return;
     if (typeof valor !== "number" || Number.isNaN(valor)) return;
 
-    lancamentos.push({
-      id: idTemp++,
-      tipo,
-      mes,
-      categoria,
-      valor,
-      descricao
-    });
+    lancamentos.push({ id: idTemp++, tipo, mes, categoria, valor, descricao });
   };
 
   const isMonthKey = (k) => /^\d+$/.test(k) && +k >= 0 && +k <= 11;
@@ -137,19 +131,19 @@ function migrarEstruturaAntigaSePrecisar(ano) {
     const keys = Object.keys(raiz);
     if (keys.length === 0) return;
 
+    // Caso 1: raiz[mes][categoria] = item
     if (keys.every(isMonthKey)) {
       keys.forEach(mk => {
         const mes = parseInt(mk, 10);
         const porCat = raiz[mk];
         if (porCat && typeof porCat === "object") {
-          Object.keys(porCat).forEach(cat => {
-            pushItem(tipo, mes, cat, porCat[cat]);
-          });
+          Object.keys(porCat).forEach(cat => pushItem(tipo, mes, cat, porCat[cat]));
         }
       });
       return;
     }
 
+    // Caso 2: raiz[categoria][mes] = item
     keys.forEach(cat => {
       const porMes = raiz[cat];
       if (porMes && typeof porMes === "object") {
@@ -248,7 +242,6 @@ function normalizarValorNumero(v) {
 // ===== Lançamentos =====
 function adicionarLancamento(ano, tipo, mes, categoria, valor, descricao) {
   garantirAno(ano);
-
   dadosPorAno[ano].lancamentos.push({
     id: nextId++,
     tipo,
@@ -257,7 +250,6 @@ function adicionarLancamento(ano, tipo, mes, categoria, valor, descricao) {
     valor,
     descricao
   });
-
   salvarFirebase();
 }
 
@@ -270,7 +262,6 @@ function editarLancamento(ano, id, novosDados) {
     ...dadosPorAno[ano].lancamentos[idx],
     ...novosDados
   };
-
   salvarFirebase();
 }
 
@@ -302,6 +293,23 @@ function calcularGastosPorCategoria(ano) {
 
   dadosPorAno[ano].lancamentos.forEach(l => {
     if (l.tipo !== "gasto") return;
+    const cat = (l.categoria || "Sem categoria").toString().trim() || "Sem categoria";
+    const v = Number(l.valor) || 0;
+    mapa[cat] = (mapa[cat] || 0) + v;
+  });
+
+  return mapa;
+}
+
+// Gastos por categoria filtrado por mês (0-11)
+function calcularGastosPorCategoriaMes(ano, mes) {
+  garantirAno(ano);
+  const mapa = {};
+
+  dadosPorAno[ano].lancamentos.forEach(l => {
+    if (l.tipo !== "gasto") return;
+    if (typeof l.mes !== "number" || l.mes !== mes) return;
+
     const cat = (l.categoria || "Sem categoria").toString().trim() || "Sem categoria";
     const v = Number(l.valor) || 0;
     mapa[cat] = (mapa[cat] || 0) + v;
@@ -536,9 +544,16 @@ let chartLine = null;
 function atualizarGraficos(ano) {
   if (!canvasBar || !canvasLine || typeof Chart === "undefined") return;
 
-  // Bar: gastos por categoria (TOP 7)
-  const gastosPorCat = calcularGastosPorCategoria(ano);
-  const top7 = setMaiores(gastosPorCat, 7);
+  // ===== Bar: gastos por categoria (TOP 7) — ano inteiro ou mês =====
+  const periodo = chartPeriodoSelect?.value ?? "ano";
+  const isAnoInteiro = (periodo === "ano");
+  const mesSelecionado = isAnoInteiro ? null : parseInt(periodo, 10);
+
+  const gastosMap = isAnoInteiro
+    ? calcularGastosPorCategoria(ano)
+    : calcularGastosPorCategoriaMes(ano, mesSelecionado);
+
+  const top7 = setMaiores(gastosMap, 7);
   const labelsBar = top7.map(([cat]) => cat);
   const dataBar = top7.map(([, valor]) => valor);
 
@@ -547,7 +562,10 @@ function atualizarGraficos(ano) {
     type: "bar",
     data: {
       labels: labelsBar,
-      datasets: [{ label: "Gastos (R$)", data: dataBar }]
+      datasets: [{
+        label: isAnoInteiro ? "Gastos (R$) — Ano inteiro" : `Gastos (R$) — ${mesesLabels[mesSelecionado]}`,
+        data: dataBar
+      }]
     },
     options: {
       responsive: true,
@@ -572,7 +590,7 @@ function atualizarGraficos(ano) {
     }
   });
 
-  // Linha: ganhos x gastos por mês
+  // ===== Linha: ganhos x gastos por mês (sempre ano inteiro) =====
   const { ganhos, gastos } = calcularTotaisMes(ano);
   if (chartLine) chartLine.destroy();
   chartLine = new Chart(canvasLine, {
@@ -637,8 +655,13 @@ function atualizarAnoAtual() {
 
 // ===== Eventos =====
 if (tipoLancamento) {
-  tipoLancamento.addEventListener("change", () => {
-    atualizarDatalistCategorias();
+  tipoLancamento.addEventListener("change", () => atualizarDatalistCategorias());
+}
+
+if (chartPeriodoSelect) {
+  chartPeriodoSelect.addEventListener("change", () => {
+    const ano = yearSelect?.value;
+    if (ano) atualizarGraficos(ano);
   });
 }
 
@@ -711,16 +734,14 @@ if (btnDeleteYear) {
 
     recalcularNextId();
     popularSelectAnos();
-    yearSelect.value = anosRestantes[anosRestantes.length - 1]; // vai para o ano mais recente
+    yearSelect.value = anosRestantes[anosRestantes.length - 1];
     atualizarAnoAtual();
 
     salvarFirebase();
   });
 }
 
-if (filtroTipo) {
-  filtroTipo.addEventListener("change", () => atualizarAnoAtual());
-}
+if (filtroTipo) filtroTipo.addEventListener("change", () => atualizarAnoAtual());
 if (filtroMes) filtroMes.addEventListener("change", () => atualizarAnoAtual());
 if (filtroCategoria) filtroCategoria.addEventListener("change", () => atualizarAnoAtual());
 
@@ -737,6 +758,10 @@ if (btnLimparFiltros) {
 document.addEventListener("DOMContentLoaded", () => {
   const anoAtual = new Date().getFullYear().toString();
   garantirAno(anoAtual);
+
+  if (chartPeriodoSelect && !chartPeriodoSelect.value) {
+    chartPeriodoSelect.value = "ano";
+  }
 
   popularSelectAnos();
   atualizarAnoAtual();
