@@ -1,1 +1,2 @@
 google.com, pub-6124393666586707, DIRECT, f08c47fec0942fa0
+# adsense-check
