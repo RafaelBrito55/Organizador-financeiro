@@ -3,308 +3,293 @@
 <head>
   <meta charset="UTF-8" />
 
-  <!-- Verificação Google Search Console -->
-  <meta name="google-site-verification" content="q3XGL7YVuF28JussiAvaMBPgQEiCa30yLHMddAw-fKs" />
-
-  <!-- Google tag (gtag.js) - Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R8B1DTKENL"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-R8B1DTKENL');
-  </script>
-
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6124393666586707"
-     crossorigin="anonymous"></script>
-
-  <title>Meu Dinheiro na Conta – Controle financeiro anual simples</title>
-
-  <!-- Favicons -->
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="logo-meu-dinheiro-na-conta.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="manifest" href="site.webmanifest">
-  <meta name="theme-color" content="#ffffff">
-
+  <title>Meu Dinheiro na Conta – Controle Financeiro</title>
 
   <!-- SEO básico -->
   <meta name="description"
         content="Meu Dinheiro na Conta – controle financeiro anual simples, rápido e direto. Registre ganhos, gastos, acompanhe gráficos e veja quanto realmente sobra no fim do ano. 100% gratuito.">
-
   <meta name="keywords"
-        content="controle financeiro, organizar finanças, gastos mensais, planilha financeira, aplicativo financeiro, dinheiro, orçamento anual, controle de gastos, gestão financeira pessoal">
+        content="controle financeiro, organizar finanças, gastos, ganhos, orçamento anual, finanças pessoais, planilha financeira, controle de gastos, gráfico de gastos">
 
-  <meta name="author" content="Meu Dinheiro na Conta">
-
-  <!-- SEO técnica -->
-  <meta name="robots" content="index, follow">
-  <meta name="googlebot" content="index, follow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Open Graph (compartilhamento) -->
-  <meta property="og:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
-  <meta property="og:description"
-        content="Controle financeiro anual simples, visual e rápido. Adicione ganhos, gastos, veja gráficos e descubra seu saldo real. Gratuito.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://meudinheironaconta.com.br/">
-  <meta property="og:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
-
-  <!-- Twitter Cards -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Meu Dinheiro na Conta – Controle financeiro simples">
-  <meta name="twitter:description"
-        content="Controle anual de ganhos e gastos. Visual, rápido e gratuito.">
-  <meta name="twitter:image" content="https://meudinheironaconta.com.br/logo-meu-dinheiro-na-conta.png">
+  <!-- AdSense (verificação/ads automáticos) -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6124393666586707"
+     crossorigin="anonymous"></script>
 
   <!-- CSS -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Firebase SDKs (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-  <!-- Config Firebase (inicializa o app) -->
-  <script src="firebase-config.js"></script>
-
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Proteção da rota (verifica login + logout) -->
-  <script src="app-auth.js" defer></script>
-
-  <!-- JS da aplicação (lógica do painel + Firestore) -->
+  <!-- JS da aplicação -->
   <script src="app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
-    <header>
+
+    <header class="top-header">
+      <div class="top-left">
+        <div class="brand">
+          <div class="brand-logo">⬆</div>
+          <div class="brand-text">
+            <div class="brand-title">Meu Dinheiro</div>
+            <div class="brand-sub">na Conta</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <nav class="top-nav">
+          <button class="nav-btn" type="button" data-open-modal="privacyModal">Privacidade</button>
+          <button class="nav-btn" type="button" data-open-modal="termsModal">Termos</button>
+          <button class="nav-btn" type="button" data-open-modal="contactModal">Contato</button>
+        </nav>
+      </div>
+    </header>
+
+    <header class="main-header">
       <div class="title-group">
-        <img src="logo-meu-dinheiro-na-conta.svg"
-             alt="Meu Dinheiro na Conta"
-             class="logo-app">
-        <h1>Meu Dinheiro na Conta</h1>
-        <p>Controle financeiro anual simples, pra você ver quanto realmente sobra no fim do ano.</p>
+        <h1>Controle Financeiro Anual</h1>
+        <p>Lança ganhos e gastos, corrige se precisar, e vê o resumo do ano.</p>
       </div>
 
       <div class="year-select">
         <span>Ano:</span>
         <select id="yearSelect"></select>
         <button type="button" id="btnAddYear" class="btn-year">+ Ano</button>
-        <button type="button" id="btnDeleteYear" class="btn-outline" style="margin-left:10px;border-color:#ef4444;color:#ef4444;">Excluir ano</button>
-      </div>
-
-      <!-- Informações do usuário logado -->
-      <div class="year-select">
-        <span id="userEmail"></span>
-        <button type="button" id="btnLogout" class="btn-outline">
-          Sair
-        </button>
       </div>
     </header>
 
     <main>
-      <!-- LADO ESQUERDO -->
-      <section class="card">
-        <h2>
-          Resumo mensal
-          <span class="label">Ganhos, gastos e saldo por mês</span>
-        </h2>
+      <section class="panel">
+        <h2>Ganhos</h2>
 
-        <div class="summary-row">
-          <div class="summary-card">
-            <div class="summary-label">Ganhos no ano</div>
-            <div class="summary-value positivo" id="resumoGanhosAno">R$ 0,00</div>
-            <div class="summary-extra" id="resumoGanhosMes">
-              Média mensal: R$ 0,00
-            </div>
+        <div class="grid-2">
+          <div class="form-block">
+            <label>Mês</label>
+            <select id="incomeMonth"></select>
           </div>
-          <div class="summary-card">
-            <div class="summary-label">Gastos no ano</div>
-            <div class="summary-value negativo" id="resumoGastosAno">R$ 0,00</div>
-            <div class="summary-extra" id="resumoGastosMes">
-              Média mensal: R$ 0,00
-            </div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-label">Saldo no ano</div>
-            <div class="summary-value" id="resumoSaldoAno">R$ 0,00</div>
-            <div class="summary-extra" id="resumoSaldoMes">
-              Média mensal: R$ 0,00
-            </div>
-          </div>
-        </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Jan</th><th>Fev</th><th>Mar</th><th>Abr</th><th>Mai</th><th>Jun</th>
-                <th>Jul</th><th>Ago</th><th>Set</th><th>Out</th><th>Nov</th><th>Dez</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaResumo"></tbody>
-          </table>
-        </div>
-
-        <h2 style="margin-top: 1.1rem;">
-          Novo lançamento
-          <span class="label">Preencha e clique em adicionar</span>
-        </h2>
-
-        <div class="forms-row">
-          <div class="form-card">
-            <div class="form-card-title">
-              Adicionar ganho ou gasto
-              <span class="label">
-                Itens fixos (salário, aluguel etc.) podem ser aplicados para todos os meses.
-              </span>
-            </div>
-            <form id="formLancamento">
-              <div class="form-row">
-                <label for="tipoLancamento">Tipo</label>
-                <select id="tipoLancamento" class="form-select">
-                  <option value="ganho">Ganho</option>
-                  <option value="gasto">Gasto</option>
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="mesLancamento">Mês</label>
-                <select id="mesLancamento" class="form-select">
-                  <option value="0">Jan</option>
-                  <option value="1">Fev</option>
-                  <option value="2">Mar</option>
-                  <option value="3">Abr</option>
-                  <option value="4">Mai</option>
-                  <option value="5">Jun</option>
-                  <option value="6">Jul</option>
-                  <option value="7">Ago</option>
-                  <option value="8">Set</option>
-                  <option value="9">Out</option>
-                  <option value="10">Nov</option>
-                  <option value="11">Dez</option>
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="categoriaLancamento">Categoria</label>
-                <input id="categoriaLancamento" type="text" list="listaCategorias" autocomplete="off" placeholder="Ex.: Aluguel, Mercado, Academia" required />
-                <datalist id="listaCategorias"></datalist>
-              </div>
-              <div class="form-row">
-                <label for="valorLancamento">Valor (R$)</label>
-                <input id="valorLancamento" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex.: 250,00" required />
-              </div>
-              <div class="form-row">
-                <label for="descricaoLancamento">Descrição (opcional)</label>
-                <input id="descricaoLancamento" type="text" placeholder="Ex.: Gasolina, Mercado X, Bico de fim de semana..." />
-              </div>
-              <button type="submit">+ Adicionar lançamento</button>
-            </form>
-          </div>
-        </div>
-
-        <h2 style="margin-top: 1.1rem;">
-          Lançamentos do ano
-          <span class="label">Edite ou exclua se tiver digitado errado</span>
-        </h2>
-
-        <!-- Filtros -->
-        <div class="filters-row">
-          <div class="filter-field">
-            <span class="filter-label">Tipo</span>
-            <select id="filtroTipo" class="filter-select">
-              <option value="todos">Todos</option>
-              <option value="ganho">Ganhos</option>
-              <option value="gasto">Gastos</option>
+          <div class="form-block">
+            <label>Categoria</label>
+            <select id="incomeCategory">
+              <option value="Salário">Salário</option>
+              <option value="Renda extra">Renda extra</option>
+              <option value="Décimo terceiro">Décimo terceiro</option>
+              <option value="Férias">Férias</option>
+              <option value="Outros ganhos">Outros ganhos</option>
             </select>
           </div>
 
-          <div class="filter-field">
-            <span class="filter-label">Mês</span>
-            <select id="filtroMes" class="filter-select">
-              <option value="todos">Todos</option>
-              <option value="0">Jan</option>
-              <option value="1">Fev</option>
-              <option value="2">Mar</option>
-              <option value="3">Abr</option>
-              <option value="4">Mai</option>
-              <option value="5">Jun</option>
-              <option value="6">Jul</option>
-              <option value="7">Ago</option>
-              <option value="8">Set</option>
-              <option value="9">Out</option>
-              <option value="10">Nov</option>
-              <option value="11">Dez</option>
-            </select>
+          <div class="form-block">
+            <label>Descrição (opcional)</label>
+            <input id="incomeDesc" type="text" placeholder="Ex: salário empresa X" />
           </div>
 
-          <div class="filter-field">
-            <span class="filter-label">Categoria</span>
-            <select id="filtroCategoria" class="filter-select"></select>
+          <div class="form-block">
+            <label>Valor</label>
+            <input id="incomeValue" type="text" inputmode="decimal" placeholder="Ex: 2500,00" />
           </div>
-
-          <button type="button" id="btnLimparFiltros" class="btn-outline">
-            Limpar filtros
-          </button>
         </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Mês</th>
-                <th>Categoria</th>
-                <th>Valor</th>
-                <th>Descrição</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaLancamentos"></tbody>
-          </table>
+        <button type="button" id="btnAddIncome" class="btn-primary">Adicionar ganho</button>
+
+        <div class="list-block">
+          <h3>Lançamentos</h3>
+          <div id="incomeList" class="list"></div>
         </div>
       </section>
 
-      <!-- LADO DIREITO: GRÁFICOS -->
-      <section class="card">
-        <h2>
-          Gráficos
-          <span class="label">Visão rápida por categoria e mês</span>
-        </h2>
+      <section class="panel">
+        <h2>Gastos</h2>
 
-        <div class="charts-grid">
-          <div class="chart-box">
-            <div class="chart-title">
-              Gastos por categoria (barra)
-              <span class="badge">Ano: <span id="anoLegenda1">–</span></span>
-            </div>
-            <div class="chart-box-inner">
-              <canvas id="barGastosCategorias"></canvas>
-            </div>
+        <div class="grid-2">
+          <div class="form-block">
+            <label>Mês</label>
+            <select id="expenseMonth"></select>
           </div>
 
-          <div class="chart-box">
-            <div class="chart-title">
-              Ganhos x Gastos mensais (linha)
-              <span class="badge">Ano atual</span>
-            </div>
-            <div class="chart-box-inner">
-              <canvas id="lineGanhosGastos"></canvas>
-            </div>
+          <div class="form-block">
+            <label>Categoria</label>
+            <select id="expenseCategory">
+              <option value="Aluguel">Aluguel</option>
+              <option value="Supermercado">Supermercado</option>
+              <option value="Combustível">Combustível</option>
+              <option value="Despesa fixa">Despesa fixa</option>
+              <option value="Cartão de crédito">Cartão de crédito</option>
+              <option value="Saúde">Saúde</option>
+              <option value="Educação">Educação</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Impostos">Impostos</option>
+              <option value="Outros gastos">Outros gastos</option>
+            </select>
+          </div>
+
+          <div class="form-block">
+            <label>Descrição (opcional)</label>
+            <input id="expenseDesc" type="text" placeholder="Ex: aluguel dezembro" />
+          </div>
+
+          <div class="form-block">
+            <label>Valor</label>
+            <input id="expenseValue" type="text" inputmode="decimal" placeholder="Ex: 120,00" />
+          </div>
+        </div>
+
+        <button type="button" id="btnAddExpense" class="btn-primary">Adicionar gasto</button>
+
+        <div class="list-block">
+          <h3>Lançamentos</h3>
+          <div id="expenseList" class="list"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Resumo</h2>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-label">Total de ganhos</div>
+            <div id="totalIncome" class="summary-value">R$ 0,00</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-label">Total de gastos</div>
+            <div id="totalExpense" class="summary-value">R$ 0,00</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-label">Saldo do ano</div>
+            <div id="totalBalance" class="summary-value">R$ 0,00</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Gráficos</h2>
+        <p class="muted">Visão rápida por categoria e mês</p>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Gastos por categoria (barra)</h3>
+            <canvas id="chartExpenseCategory"></canvas>
+          </div>
+
+          <div class="chart-card">
+            <h3>Ganhos x Gastos (linha)</h3>
+            <canvas id="chartIncomeExpense"></canvas>
           </div>
         </div>
       </section>
     </main>
 
-    <footer>
-      Conceito simples: cada linha é um lançamento. Itens fixos você replica pro ano todo com 1 clique (quando quiser).
+    <footer class="footer">
+      <span>© Meu Dinheiro na Conta • 100% grátis</span>
+      <a href="acesso.html" class="footer-link">Acessar / Criar conta</a>
     </footer>
+
   </div>
+
+  <!-- Modais -->
+  <div class="modal-backdrop" id="privacyModal" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Privacidade</h3>
+        <button class="modal-close" type="button" data-close-modal>×</button>
+      </div>
+      <div class="modal-body">
+        <p>Seu controle financeiro é pessoal. Este site armazena apenas os dados necessários para você usar a ferramenta.</p>
+        <p>Não vendemos seus dados, não repassamos para terceiros e você pode apagar seus registros quando quiser.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="termsModal" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Termos</h3>
+        <button class="modal-close" type="button" data-close-modal>×</button>
+      </div>
+      <div class="modal-body">
+        <p>O Meu Dinheiro na Conta é uma ferramenta gratuita e sem garantia de resultados financeiros.</p>
+        <p>Use por sua conta e risco. Se encontrar bugs ou quiser sugerir melhorias, fale com a gente no contato.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="contactModal" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Contato</h3>
+        <button class="modal-close" type="button" data-close-modal>×</button>
+      </div>
+      <div class="modal-body">
+        <p>Envie dúvidas, sugestões ou problemas:</p>
+
+        <form id="contactForm">
+          <label>Seu nome (opcional)</label>
+          <input id="contactName" type="text" placeholder="Ex: Rafael" />
+
+          <label>Mensagem</label>
+          <textarea id="contactMessage" rows="5" placeholder="Digite aqui sua dúvida ou sugestão..."></textarea>
+
+          <button type="submit" class="btn-primary">Enviar</button>
+          <p id="contactStatus" class="muted" style="margin-top: 10px;"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script simples pra abrir/fechar modais -->
+  <script>
+    (function () {
+      const openButtons = document.querySelectorAll("[data-open-modal]");
+      const closeButtons = document.querySelectorAll("[data-close-modal]");
+      const backdrops = document.querySelectorAll(".modal-backdrop");
+
+      function openModal(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add("show");
+        el.setAttribute("aria-hidden", "false");
+      }
+
+      function closeModal(el) {
+        el.classList.remove("show");
+        el.setAttribute("aria-hidden", "true");
+      }
+
+      openButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          openModal(btn.getAttribute("data-open-modal"));
+        });
+      });
+
+      closeButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const backdrop = btn.closest(".modal-backdrop");
+          if (backdrop) closeModal(backdrop);
+        });
+      });
+
+      backdrops.forEach(b => {
+        b.addEventListener("click", (e) => {
+          if (e.target === b) closeModal(b);
+        });
+      });
+
+      // Form contato (só feedback visual local)
+      const contactForm = document.getElementById("contactForm");
+      if (contactForm) {
+        contactForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const status = document.getElementById("contactStatus");
+          if (status) status.textContent = "Mensagem preparada. (No momento, esta versão não envia e-mail automaticamente.)";
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
