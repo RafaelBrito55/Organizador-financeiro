@@ -459,82 +459,109 @@ function renderTabelaLancamentos(ano) {
       (a.id - b.id)
     );
 
-  if (lista.length === 0) {
-    tabelaLancamentos.innerHTML = '<tr><td colspan="6">Nenhum lançamento encontrado.</td></tr>';
-    return;
-  }
-
   tabelaLancamentos.innerHTML = "";
 
-  lista.forEach(l => {
-    const tr = document.createElement("tr");
+  // Se não tiver nada, ainda assim mostra o total (0) no final
+  if (lista.length === 0) {
+    const trVazio = document.createElement("tr");
+    const tdVazio = document.createElement("td");
+    tdVazio.colSpan = 6;
+    tdVazio.textContent = "Nenhum lançamento encontrado.";
+    trVazio.appendChild(tdVazio);
+    tabelaLancamentos.appendChild(trVazio);
+  } else {
+    lista.forEach(l => {
+      const tr = document.createElement("tr");
 
-    const tdTipo = document.createElement("td");
-    tdTipo.textContent = l.tipo === "ganho" ? "Ganho" : "Gasto";
+      const tdTipo = document.createElement("td");
+      tdTipo.textContent = l.tipo === "ganho" ? "Ganho" : "Gasto";
 
-    const tdMes = document.createElement("td");
-    tdMes.textContent = mesesLabels[l.mes] ?? "-";
+      const tdMes = document.createElement("td");
+      tdMes.textContent = mesesLabels[l.mes] ?? "-";
 
-    const tdCat = document.createElement("td");
-    tdCat.textContent = l.categoria || "";
+      const tdCat = document.createElement("td");
+      tdCat.textContent = l.categoria || "";
 
-    const tdValor = document.createElement("td");
-    tdValor.textContent = formatarMoeda(Number(l.valor) || 0);
+      const tdValor = document.createElement("td");
+      tdValor.textContent = formatarMoeda(Number(l.valor) || 0);
 
-    const tdDesc = document.createElement("td");
-    tdDesc.textContent = l.descricao || "";
+      const tdDesc = document.createElement("td");
+      tdDesc.textContent = l.descricao || "";
 
-    const tdAcoes = document.createElement("td");
+      const tdAcoes = document.createElement("td");
 
-    const btnEditar = document.createElement("button");
-    btnEditar.type = "button";
-    btnEditar.className = "btn-small";
-    btnEditar.textContent = "Editar";
-    btnEditar.addEventListener("click", () => {
-      const novoValorStr = prompt("Novo valor (ex.: 83,30):", String(l.valor).replace(".", ","));
-      if (novoValorStr === null) return;
-      const novoValor = normalizarValorNumero(novoValorStr);
-      if (Number.isNaN(novoValor)) {
-        alert("Valor inválido.");
-        return;
-      }
+      const btnEditar = document.createElement("button");
+      btnEditar.type = "button";
+      btnEditar.className = "btn-small";
+      btnEditar.textContent = "Editar";
+      btnEditar.addEventListener("click", () => {
+        const novoValorStr = prompt("Novo valor (ex.: 83,30):", String(l.valor).replace(".", ","));
+        if (novoValorStr === null) return;
+        const novoValor = normalizarValorNumero(novoValorStr);
+        if (Number.isNaN(novoValor)) {
+          alert("Valor inválido.");
+          return;
+        }
 
-      const novaCategoria = prompt("Categoria:", l.categoria || "");
-      if (novaCategoria === null) return;
-      const categoriaTrim = (novaCategoria || "").replace(/\s+/g, " ").trim();
-      if (!categoriaTrim) {
-        alert("Categoria inválida.");
-        return;
-      }
+        const novaCategoria = prompt("Categoria:", l.categoria || "");
+        if (novaCategoria === null) return;
+        const categoriaTrim = (novaCategoria || "").replace(/\s+/g, " ").trim();
+        if (!categoriaTrim) {
+          alert("Categoria inválida.");
+          return;
+        }
 
-      const novaDesc = prompt("Descrição (opcional):", l.descricao || "");
-      if (novaDesc === null) return;
+        const novaDesc = prompt("Descrição (opcional):", l.descricao || "");
+        if (novaDesc === null) return;
 
-      editarLancamento(ano, l.id, {
-        valor: novoValor,
-        categoria: categoriaTrim,
-        descricao: (novaDesc || "").trim()
+        editarLancamento(ano, l.id, {
+          valor: novoValor,
+          categoria: categoriaTrim,
+          descricao: (novaDesc || "").trim()
+        });
+
+        atualizarAnoAtual();
       });
 
-      atualizarAnoAtual();
+      const btnExcluir = document.createElement("button");
+      btnExcluir.type = "button";
+      btnExcluir.className = "btn-small btn-outline";
+      btnExcluir.textContent = "Excluir";
+      btnExcluir.addEventListener("click", () => {
+        const ok = confirm("Excluir este lançamento?");
+        if (!ok) return;
+        excluirLancamento(ano, l.id);
+        atualizarAnoAtual();
+      });
+
+      tdAcoes.append(btnEditar, btnExcluir);
+
+      tr.append(tdTipo, tdMes, tdCat, tdValor, tdDesc, tdAcoes);
+      tabelaLancamentos.appendChild(tr);
     });
+  }
 
-    const btnExcluir = document.createElement("button");
-    btnExcluir.type = "button";
-    btnExcluir.className = "btn-small btn-outline";
-    btnExcluir.textContent = "Excluir";
-    btnExcluir.addEventListener("click", () => {
-      const ok = confirm("Excluir este lançamento?");
-      if (!ok) return;
-      excluirLancamento(ano, l.id);
-      atualizarAnoAtual();
-    });
+  // ✅ Somatório do que estiver sendo exibido (com ou sem filtros)
+  const totalExibido = lista.reduce((s, l) => s + (Number(l.valor) || 0), 0);
 
-    tdAcoes.append(btnEditar, btnExcluir);
+  const trTotal = document.createElement("tr");
 
-    tr.append(tdTipo, tdMes, tdCat, tdValor, tdDesc, tdAcoes);
-    tabelaLancamentos.appendChild(tr);
-  });
+  const tdLabel = document.createElement("td");
+  tdLabel.colSpan = 3;
+  tdLabel.innerHTML = "<strong>Total (itens exibidos)</strong>";
+
+  const tdTotal = document.createElement("td");
+  tdTotal.className = "total";
+  tdTotal.textContent = formatarMoeda(totalExibido);
+
+  const tdVazio1 = document.createElement("td");
+  tdVazio1.textContent = "";
+
+  const tdVazio2 = document.createElement("td");
+  tdVazio2.textContent = "";
+
+  trTotal.append(tdLabel, tdTotal, tdVazio1, tdVazio2);
+  tabelaLancamentos.appendChild(trTotal);
 }
 
 // ===== Charts =====
